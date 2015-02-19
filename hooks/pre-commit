@@ -1,0 +1,19 @@
+#!/bin/sh
+# for sourcetree.  The path is clobbered for some reason.
+export PATH=/usr/local/bin/:$PATH
+exec 1>&2
+echo "make format..."
+make format
+format_value=$?
+
+if [ ${format_value} -ne 0]; then
+    echo "format failed..."
+fi
+
+echo "make syntax_check..."
+make syntax_check
+syntax_value=$?
+if [ ${syntax_value} -ne 0]; then
+    echo "syntax failed..."
+fi
+exit $((syntax_value + format_value))
