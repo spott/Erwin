@@ -1,5 +1,6 @@
 #include <time_independent/time_independent.hpp>
 #include <utilities/math.hpp>
+#include <parameters/basis.hpp>
 
 int main( int argc, const char** argv )
 {
@@ -9,22 +10,31 @@ int main( int argc, const char** argv )
 
     PetscContext pc( argc, argv );
 
-    auto grid = math::make_equally_spaced_grid( 1000, 10 );
-    auto potential = []( double r ) { return 1. / r; };
+    auto parameters = make_BasisParameters( argc, argv );
+    if ( !pc.rank() ) cout << parameters.print();
+    if ( !pc.rank() ) parameters.write();
 
-    SphericalHamiltonian<double> H( grid, potential, 0 );
-    // Basis<SphericalHamiltonian<double>> B(
-    //     static_cast<Hamiltonian<SphericalHamiltonian<double>>>( H ), 10 );
-    auto B = make_basis( H, 10 );
+    auto grid =
+        math::make_ecs_grid( parameters.points, parameters.rmax,
+                             parameters.ecs_percent, parameters.ecs_alpha );
+
+    // auto potential = ;
+    auto H = make_SphericalHamiltonian(
+        grid, []( complex<double> r ) { return -1. / r; }, 0 );
+    auto B = make_Basis( H, parameters.nmax );
     vector<BasisID> prototype;
 
-    for ( int l = 0; l < 10; ++l ) {
-        std::cout << "l: " << l << std::endl;
+    for ( int l = 0; l <= parameters.lmax; ++l ) {
+        cout << "l: " << l;
         H.l( l );
-        B.find();
-        B.e.print();
-        B.save_basis( "stupid_string" );
+        auto gs = B.find();
+        if ( !pc.rank() ) cout << " gs: " << gs << endl;
+        B.er.print();
+        B.el.print();
+        B.save_basis( parameters.l_filename_left( l ),
+                      parameters.l_filename_right( l ) );
         B.add_evalues( prototype );
     }
-    B.save_grid( "stupid_string" );
+    B.save_grid( parameters.grid_filename() );
+    io::export_vector_binary( parameters.prototype_filename(), prototype );
 }
