@@ -1,13 +1,13 @@
 #pragma once
 
-//stl:
-#include<iostream>
-#include<vector>
-#include<array>
+// stl:
+#include <iostream>
+#include <vector>
+#include <array>
 
 // boost:
-#include<boost/serialization/access.hpp>
-#include<boost/serialization/complex.hpp>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/complex.hpp>
 
 namespace Erwin
 {
@@ -78,14 +78,15 @@ std::ostream& operator<<( std::ostream& out, const BasisID& b ) // output
     return out;
 }
 }
-  
-namespace std {
-template<>
-struct hash< Erwin::BasisID > {
-public:
-  size_t operator()(const Erwin::BasisID &a) const 
+
+namespace std
+{
+template <>
+struct hash<Erwin::BasisID> {
+  public:
+    size_t operator()( const Erwin::BasisID& a ) const
     {
-        return a.n + 10000 * a.l  + 1000000 * a.m;
+        return a.n + 10000 * a.l + 1000000 * a.m;
     }
 };
 }
@@ -96,12 +97,12 @@ public:
 /************************
  * For std::array
  ************************/
-template<typename T, size_t N>
-std::ostream& operator<<(std::ostream &out, const std::array<T, N> &b) //output an array
+template <typename T, size_t N>
+std::ostream& operator<<( std::ostream& out,
+                          const std::array<T, N>& b ) // output an array
 {
-    for (size_t i = 0; i < b.size(); i++)
-    {
-        if (i != 0)
+    for ( size_t i = 0; i < b.size(); i++ ) {
+        if ( i != 0 )
             out << ", " << b[i];
         else
             out << b[i];
@@ -109,14 +110,13 @@ std::ostream& operator<<(std::ostream &out, const std::array<T, N> &b) //output 
     return out;
 }
 
-template< typename T, size_t N>
-bool operator<( const std::array<T, N> &a, const std::array<T, N> &b )
+template <typename T, size_t N>
+bool operator<( const std::array<T, N>& a, const std::array<T, N>& b )
 {
-    for (size_t i = 0; i < N; ++i)
-    {
-        if (a[i] < b[i])
+    for ( size_t i = 0; i < N; ++i ) {
+        if ( a[i] < b[i] )
             return true;
-        else if (a[i] > b[i])
+        else if ( a[i] > b[i] )
             return false;
     }
     return false;

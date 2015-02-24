@@ -16,15 +16,13 @@ namespace io
 
     inline void wait_for_key()
     {
-        std::cout << std::endl << "Press ENTER to continue..."
-                  << std::endl;
+        std::cout << std::endl << "Press ENTER to continue..." << std::endl;
         std::cin.clear();
         std::cin.ignore( std::cin.rdbuf()->in_avail() );
         std::cin.get();
     }
 
-    inline void printProgBar( double percent,
-                              std::ostream& os = std::cout )
+    inline void printProgBar( double percent, std::ostream& os = std::cout )
     {
         percent *= 100;
         std::string bar;
@@ -120,18 +118,17 @@ namespace io
         if ( file.is_open() ) {
             for ( auto i = out.begin(); i < out.end(); i += block_size ) {
                 std::array<T2, block_size> ni;
-                for ( auto j = i;
-                      j < ( ( out.end() - i < int( block_size ) )
-                                ? out.end()
-                                : i + block_size );
+                for ( auto j = i; j < ( ( out.end() - i < int( block_size ) )
+                                            ? out.end()
+                                            : i + block_size );
                       j++ )
                     ni[j - i] = static_cast<T2>( *j );
-                file.write( reinterpret_cast<const char*>( &ni ),
-                            static_cast<size_t>(
-                                sizeof( T2 ) *
-                                ( ( out.end() - i < int( block_size ) )
-                                      ? out.end() - i
-                                      : block_size ) ) );
+                file.write(
+                    reinterpret_cast<const char*>( &ni ),
+                    static_cast<size_t>( sizeof( T2 ) *
+                                         ( ( out.end() - i < int( block_size ) )
+                                               ? out.end() - i
+                                               : block_size ) ) );
             }
             file.close();
         } else {

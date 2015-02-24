@@ -1,4 +1,4 @@
-PETSC_DIR=/usr/local/Cellar/petsc/3.5.2-debug
+PETSC_DIR=/usr/local/Cellar/petsc/3.5.3-debug
 SLEPC_DIR=/usr/local/Cellar/slepc/3.5.3-debug
 
 include ${SLEPC_DIR}/conf/slepc_common
@@ -9,7 +9,7 @@ LDFLAGS= -L/Users/spott/Code/c++/petsc_cpp_wrapper/lib/ -lpetsc_cpp -lgsl -lboos
 SOURCES=src/test/ti_test.cpp
 HEADERS=include/time_independent/* include/utilities/*
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=test
+EXECUTABLE=testing/test
 DEFAULT=all
 
 all: format $(SOURCES) $(EXECUTABLE)

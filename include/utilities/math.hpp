@@ -42,15 +42,16 @@ namespace math
     template <typename scalar>
     scalar CGCoefficient( const Angular& init, const Angular& fin )
     {
-        scalar out =
-            gsl_sf_coupling_3j( init.l * 2, 2, fin.l * 2, 0, 0, 0 );
+        scalar out = gsl_sf_coupling_3j( init.l * 2, 2, fin.l * 2, 0, 0, 0 );
         out *= out;
         out *= std::sqrt( ( 2 * init.l + 1 ) * ( 2 * fin.l + 1 ) );
         return out;
     }
 
-    std::vector<std::complex<double>> make_ecs_grid(
-        int grid_size, double rmax, double exterior_percent, double alpha )
+    std::vector<std::complex<double>> make_ecs_grid( int grid_size,
+                                                     double rmax,
+                                                     double exterior_percent,
+                                                     double alpha )
     {
         typedef std::complex<double> complex;
         using std::vector;
@@ -66,16 +67,14 @@ namespace math
             if ( r <= boundary )
                 grid.emplace_back( r );
             else
-                grid.emplace_back( boundary +
-                                   ( r - boundary ) *
-                                       exp( complex( 0, alpha ) ) );
+                grid.emplace_back(
+                    boundary + ( r - boundary ) * exp( complex( 0, alpha ) ) );
         }
 
         return grid;
     }
 
-    std::vector<double> make_equally_spaced_grid( int grid_size,
-                                                  double rmax )
+    std::vector<double> make_equally_spaced_grid( int grid_size, double rmax )
     {
         using std::vector;
         vector<double> grid;
