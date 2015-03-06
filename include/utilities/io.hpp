@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
+#include <vector>
 
 namespace Erwin
 {
@@ -135,6 +136,75 @@ namespace io
             throw std::runtime_error( "error opening file " + filename +
                                       " does the folder exist?" );
         }
+    }
+
+
+    template <typename T>
+    std::vector<T> import_vector_binary( const std::string& filename )
+    {
+        static_assert(std::is_trivially_copyable<T>(),
+              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
+        std::ifstream file;
+        file.open( filename.c_str(), std::ios::binary );
+        std::vector<T> vec;
+        if ( file.is_open() ) {
+            auto size = file.tellg();
+            if ( size != 0 ) {
+                vec.resize( size / sizeof( T ) );
+
+                // make sure we haven't rounded unintentionally
+                assert( static_cast<double>( size ) / sizeof( T ) ==
+                        vec.size() );
+
+                file.seekg( 0, std::ios::beg );
+
+                file.read( reinterpret_cast<char*>( vec.data() ), size );
+                file.close();
+            } else {
+                throw std::runtime_error( "file is empty " + filename );
+            }
+        } else {
+            throw std::runtime_error( "file didn't open: " + filename );
+        }
+
+        return vec;
+    };
+
+    template <typename T>
+    inline std::function<std::vector<T>()>
+    import_vector_by_parts_fn( const std::string& filename,
+                               const size_t stride,
+                               const size_t start_ = 0 )
+    {
+        static_assert(std::is_trivially_copyable<T>(),
+              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
+        using namespace std;
+        return [filename, stride, start_]() -> vector<T> {
+            static ifstream file( filename.c_str(), ios::binary | ios::in );
+            static size_t start{start_ * stride};
+            static size_t end = [&]() {
+                file.seekg( 0, ios_base::seekdir::end );
+                return file.tellg();
+            }();
+
+            if ( file.is_open() ) {
+                vector<T> v( stride );
+                file.seekg( start );
+                file.read( reinterpret_cast<char*>( v.data() ),
+                           stride * sizeof( T ) );
+
+                if ( start + stride * sizeof( T ) >= end )
+                    throw std::out_of_range(
+                        "tried to read a stride out of range " + filename +
+                        " @ " + to_string( start + stride * sizeof( T ) ) );
+                start += stride * sizeof( T );
+                return v;
+            } else {
+
+                throw std::runtime_error( "error opening file " + filename +
+                                          " does the folder exist?" );
+            }
+        };
     }
 }
 }
