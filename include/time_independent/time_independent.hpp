@@ -78,7 +78,7 @@ struct Basis<HamiltonianType, true> {
         // clear file first:
         if ( io::file_exists( filename ) ) io::empty_file( filename );
         e.save_basis( filename, []( Vector& v ) {
-            map( v, []( auto a, auto i ) { return a.real(); } );
+            petsc::map( v, []( auto a, auto i ) { return a.real(); } );
         } );
     }
 

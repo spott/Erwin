@@ -56,7 +56,7 @@ namespace math
         typedef std::complex<double> complex;
         using std::vector;
         std::vector<complex> grid;
-        grid.reserve( grid_size );
+        grid.reserve( grid_size + 1 );
 
         auto dr = rmax / grid_size;
 
@@ -78,7 +78,7 @@ namespace math
     {
         using std::vector;
         vector<double> grid;
-        grid.reserve( grid_size );
+        grid.reserve( grid_size + 1 );
 
         auto dr = rmax / grid_size;
 

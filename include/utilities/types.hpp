@@ -28,17 +28,6 @@ struct Range {
 struct BasisID {
     PetscInt n, l, m;
     PetscScalar e;
-    bool operator<( const BasisID b ) const
-    {
-        if ( this->l < b.l )
-            return true;
-        else if ( this->l == b.l && this->n < b.n )
-            return true;
-        else if ( this->l == b.l && this->n < b.n && this->m == b.m )
-            return true;
-        else
-            return false;
-    }
 
   private:
     friend class boost::serialization::access;
@@ -51,6 +40,20 @@ struct BasisID {
         ar& e;
     }
 };
+
+
+bool operator<( const BasisID& a, const BasisID& b )
+{
+    if ( a.l < b.l )
+        return true;
+    else if ( a.l == b.l && a.n < b.n )
+        return true;
+    else if ( a.l == b.l && a.n == b.n && a.m < b.m )
+        return true;
+    else
+        return false;
+}
+
 bool operator==( const BasisID& a, const BasisID& b )
 {
     if ( a.l != b.l || a.n != b.n || a.e != b.e || a.m != b.m )
@@ -58,6 +61,17 @@ bool operator==( const BasisID& a, const BasisID& b )
     else
         return true;
 }
+
+bool operator<=(const BasisID& a, const BasisID& b )
+{
+    return (a < b) || (a == b);
+}
+
+bool operator>(const BasisID& a, const BasisID& b)
+{
+    return !(a <= b);
+}
+
 bool operator!=( const BasisID& a, const BasisID& b )
 {
     if ( a.l != b.l || a.n != b.n || a.e != b.e || a.m != b.m )
@@ -65,6 +79,7 @@ bool operator!=( const BasisID& a, const BasisID& b )
     else
         return false;
 }
+
 std::istream& operator>>( std::istream& in, BasisID& b ) // input
 {
     PetscReal er, ei;
