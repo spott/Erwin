@@ -1,6 +1,9 @@
 #pragma once
 
 #include <boost/program_options.hpp>
+#include <utilities/math.hpp>
+#include <utilities/types.hpp>
+#include <utilities/io.hpp>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -44,11 +47,11 @@ struct BasisParameters {
 
     void write() const;
     string grid_filename() const { return folder + "/grid.dat"; }
+
     string l_filename( size_t l ) const
     {
         return folder + "/l_" + to_string( l ) + ".dat";
     }
-
     string l_filename_left( size_t l ) const
     {
         return folder + "/l_" + to_string( l ) + "_l.dat";
@@ -58,6 +61,14 @@ struct BasisParameters {
         return folder + "/l_" + to_string( l ) + "_r.dat";
     }
     string prototype_filename() const { return folder + "/prototype.dat"; }
+    void write_prototype( vector<BasisID> prototype ) const
+    {
+        io::export_vector_binary( prototype_filename(), prototype );
+    }
+    vector<BasisID> read_prototype() const
+    {
+        return io::import_vector_binary<BasisID>( prototype_filename() );
+    }
     string print() const;
 
     double rmax;
@@ -109,7 +120,7 @@ const BasisParameters make_BasisParameters( int argc, const char** argv )
     basis.add_options()( "basis_rmax",
                          po::value<double>()->default_value( 1000 ),
                          "the maximum r value" )(
-        "basis_rmin", po::value<double>()->default_value( 0 ),
+        "basis_rmin", po::value<double>()->default_value( 1e-6 ),
         "the minimum r value" )( "basis_points",
                                  po::value<size_t>()->default_value( 10000 ),
                                  "the number of points on the grid" )(
