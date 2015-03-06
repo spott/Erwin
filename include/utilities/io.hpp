@@ -51,7 +51,7 @@ namespace io
             char* a = new char[1025];
             getcwd( a, 1025 );
             std::string cwd = std::string( a );
-            delete a;
+            delete[] a;
             return cwd.append( "/" ).append( rel_path );
         } else
             return rel_path;
@@ -73,7 +73,6 @@ namespace io
 
     inline void empty_file( const std::string& filename )
     {
-        std::ios::pos_type size;
         std::ofstream file;
         auto openmode = std::ios::trunc;
         file.open( filename.c_str(), openmode );
@@ -89,7 +88,8 @@ namespace io
                                       const std::vector<T>& out,
                                       const std::vector<U>& prefix )
     {
-        std::ios::pos_type size;
+        static_assert(std::is_trivially_copyable<T>(),
+              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
         std::ofstream file;
         file.open( filename.c_str(), std::ios::binary | std::ios::out );
         if ( file.is_open() ) {
@@ -111,7 +111,8 @@ namespace io
                                       const std::vector<T>& out,
                                       bool append = false )
     {
-        std::ios::pos_type size;
+        static_assert(std::is_trivially_copyable<T>(),
+              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
         std::ofstream file;
         auto openmode = std::ios::binary | std::ios::out;
         if ( append ) openmode = openmode | std::ios::app;
