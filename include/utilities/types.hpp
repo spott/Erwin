@@ -9,6 +9,8 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/complex.hpp>
 
+#include <petsc_cpp/Petsc.hpp>
+
 namespace Erwin
 {
 template <typename iterator>
@@ -42,56 +44,18 @@ struct BasisID {
 };
 
 
-bool operator<( const BasisID& a, const BasisID& b )
-{
-    if ( a.l < b.l )
-        return true;
-    else if ( a.l == b.l && a.n < b.n )
-        return true;
-    else if ( a.l == b.l && a.n == b.n && a.m < b.m )
-        return true;
-    else
-        return false;
-}
+bool operator<( const BasisID& a, const BasisID& b );
 
-bool operator==( const BasisID& a, const BasisID& b )
-{
-    if ( a.l != b.l || a.n != b.n || a.e != b.e || a.m != b.m )
-        return false;
-    else
-        return true;
-}
+bool operator==( const BasisID& a, const BasisID& b );
 
-bool operator<=(const BasisID& a, const BasisID& b )
-{
-    return (a < b) || (a == b);
-}
+bool operator<=( const BasisID& a, const BasisID& b );
 
-bool operator>(const BasisID& a, const BasisID& b)
-{
-    return !(a <= b);
-}
+bool operator>( const BasisID& a, const BasisID& b );
 
-bool operator!=( const BasisID& a, const BasisID& b )
-{
-    if ( a.l != b.l || a.n != b.n || a.e != b.e || a.m != b.m )
-        return true;
-    else
-        return false;
-}
+bool operator!=( const BasisID& a, const BasisID& b );
 
-std::istream& operator>>( std::istream& in, BasisID& b ) // input
-{
-    PetscReal er, ei;
-    in >> b.n >> b.l >> b.m >> er >> ei;
-    b.e = std::complex<double>( er, ei );
-    return in;
-}
-std::ostream& operator<<( std::ostream& out, const BasisID& b ) // output
-{
-    out << b.n << ", " << b.l << ", " << b.m << ", " << b.e.real();
-    return out;
-}
+std::istream& operator>>( std::istream& in, BasisID& b );        // input
+std::ostream& operator<<( std::ostream& out, const BasisID& b ); // output
 }
 
 namespace std
@@ -107,6 +71,20 @@ struct hash<Erwin::BasisID> {
 }
 
 // End BasisID definitions
+
+/************************
+ * Angular.  Part of BasisID:
+ ************************/
+namespace Erwin
+{
+
+struct Angular {
+    unsigned int l;
+    int m;
+
+    Angular( const BasisID& a ) : l( a.l ), m( a.m ) {}
+};
+}
 
 
 /************************

@@ -1,9 +1,5 @@
 #pragma once
 
-#include <boost/program_options.hpp>
-#include <fstream>
-#include <sstream>
-#include <string>
 #include <parameters/basis.hpp>
 
 namespace Erwin
@@ -26,16 +22,42 @@ struct HamiltonianParameters {
 
     void write() const;
     string prototype_filename() const { return folder + "/prototype.dat"; }
-    void write_prototype( vector<BasisID> prototype ) const
+    void write_prototype( const vector<BasisID>& rhs ) const
     {
-        io::export_vector_binary( prototype_filename(), prototype );
+        io::export_vector_binary( prototype_filename(), rhs );
     }
     vector<BasisID> read_prototype() const
     {
         return io::import_vector_binary<BasisID>( prototype_filename() );
     }
-    string dipole_filename() const { return folder + "/Dipole.dat"; }
-    string field_free_filename() const { return folder + "/Energy.dat"; }
+
+    string dipole_filename() const { return folder + "/dipole_matrix.dat"; }
+    void write_dipole( const petsc::Matrix& rhs ) const
+    {
+        rhs.to_file( dipole_filename() );
+    }
+    petsc::Matrix read_dipole() const
+    {
+        petsc::Matrix m( petsc::Matrix::type::block_aij );
+        petsc::binary_import( m, dipole_filename() );
+        return m;
+    }
+
+    string field_free_filename() const
+    {
+        return folder + "/energy_eigenvalues_vector.dat";
+    }
+    void write_field_free( const petsc::Vector& rhs ) const
+    {
+        rhs.to_file( field_free_filename() );
+    }
+    petsc::Vector read_field_free() const
+    {
+        petsc::Vector m;
+        petsc::binary_import( m, dipole_filename() );
+        return m;
+    }
+
     BasisID max_basis() const
     {
         return BasisID{
@@ -51,95 +73,10 @@ struct HamiltonianParameters {
     BasisParameters basis;
 };
 
-void HamiltonianParameters::write() const
-{
-    ofstream configfile{folder + "/HamiltonianParameters.config"};
-    configfile << print();
-    configfile.close();
-}
-
-string HamiltonianParameters::print() const
-{
-    stringstream ss;
-    ss << "hamiltonian_nmax=" << nmax << endl;
-    ss << "hamiltonian_lmax=" << lmax << endl;
-    ss << "hamiltonian_folder=" << folder << endl;
-    ss << "hamiltonian_basis_config=" << basis.folder
-       << "/BasisParameters.config" << endl;
-    return ss.str();
-}
 
 vector<BasisID> shrink_prototype( vector<BasisID> rhs,
-                                  BasisID largest_inclusive )
-{
-    vector<BasisID> out;
-    copy_if( rhs.begin(), rhs.end(), out.begin(),
-             [&largest_inclusive]( auto& a ) {
-        return a.n <= largest_inclusive.n && a.l <= largest_inclusive.l &&
-               abs( a.m ) <= largest_inclusive.m &&
-               a.e.real() <= largest_inclusive.e.real();
-    } );
-    return out;
-}
+                                  BasisID largest_inclusive );
 
 const HamiltonianParameters make_HamiltonianParameters( int argc,
-                                                        const char** argv )
-{
-    namespace po = boost::program_options;
-
-    string config_filename;
-    po::options_description only_command_line;
-    only_command_line.add_options()( "hamiltonian_config",
-                                     po::value<string>( &config_filename ),
-                                     "Hamiltonian config file" );
-
-    po::options_description hamiltonian( "Hamiltonian Options" );
-    hamiltonian.add_options()( "hamiltonian_nmax",
-                               po::value<size_t>()->default_value( 100 ),
-                               "the maximum principle atomic number" )(
-        "hamiltonian_lmax", po::value<size_t>()->default_value( 10 ),
-        "the maximum angular atomic number" )(
-        "hamiltonian_mmax", po::value<size_t>()->default_value( 0 ),
-        "the maximum magnetic atomic number" )(
-        "hamiltonian_emax", po::value<size_t>()->default_value( 1000 ),
-        "the maximum energy" )( "hamiltonian_folder",
-                                po::value<string>()->default_value( "./" ),
-                                "the folder the hamiltonian should be saved" )(
-        "hamiltonian_basis_config", po::value<string>(),
-        "the config file the basis is in" );
-
-
-    po::variables_map vm;
-
-    // we just want to get the config filename:
-    po::store( po::command_line_parser( argc, argv )
-                   .options( only_command_line )
-                   .allow_unregistered()
-                   .run(),
-               vm );
-    po::notify( vm );
-
-    ifstream fs( config_filename );
-    vm.clear();
-
-    po::store( po::parse_config_file( fs, hamiltonian, true ), vm );
-    po::store( po::command_line_parser( argc, argv )
-                   .options( hamiltonian )
-                   .allow_unregistered()
-                   .run(),
-               vm );
-    po::notify( vm );
-
-    // now get the BasisParameters structure:
-    const char* fake_commands[3] = {
-        "placeholder",
-        "--basis_config",
-        vm["hamiltonian_basis_config"].as<string>().c_str()};
-    auto basis = make_BasisParameters( 3, fake_commands );
-
-    return HamiltonianParameters(
-        vm["hamiltonian_folder"].as<string>(), basis,
-        vm["basis_nmax"].as<size_t>(), vm["basis_lmax"].as<size_t>(),
-        vm["basis_mmax"].as<size_t>(), vm["basis_emax"].as<size_t>() );
-}
+                                                        const char** argv );
 }
