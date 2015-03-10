@@ -9,6 +9,8 @@
 #include <cstdarg>
 #include <vector>
 
+#include <petsc_cpp/Petsc.hpp>
+
 namespace Erwin
 {
 
@@ -88,8 +90,8 @@ namespace io
                                       const std::vector<T>& out,
                                       const std::vector<U>& prefix )
     {
-        static_assert(std::is_trivially_copyable<T>(),
-              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         std::ofstream file;
         file.open( filename.c_str(), std::ios::binary | std::ios::out );
         if ( file.is_open() ) {
@@ -111,8 +113,8 @@ namespace io
                                       const std::vector<T>& out,
                                       bool append = false )
     {
-        static_assert(std::is_trivially_copyable<T>(),
-              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         std::ofstream file;
         auto openmode = std::ios::binary | std::ios::out;
         if ( append ) openmode = openmode | std::ios::app;
@@ -143,10 +145,10 @@ namespace io
     template <typename T>
     std::vector<T> import_vector_binary( const std::string& filename )
     {
-        static_assert(std::is_trivially_copyable<T>(),
-              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         std::ifstream file;
-        file.open( filename.c_str(), std::ios::binary );
+        file.open( filename.c_str(), std::ios::binary | std::ios::ate );
         std::vector<T> vec;
         if ( file.is_open() ) {
             auto size = file.tellg();
@@ -177,8 +179,8 @@ namespace io
                                const size_t stride,
                                const size_t start_ = 0 )
     {
-        static_assert(std::is_trivially_copyable<T>(),
-              "NO NO NO - T MUST BE TRIVIALLY COPYABLE!");
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         using namespace std;
         return [filename, stride, start_]() -> vector<T> {
             static ifstream file( filename.c_str(), ios::binary | ios::in );
@@ -189,17 +191,53 @@ namespace io
             }();
 
             if ( file.is_open() ) {
+                if ( start >= end )
+                    throw std::out_of_range(
+                        "tried to read a stride out of range " + filename +
+                        " @ " + to_string( start ) );
                 vector<T> v( stride );
                 file.seekg( start );
                 file.read( reinterpret_cast<char*>( v.data() ),
                            stride * sizeof( T ) );
 
-                if ( start + stride * sizeof( T ) >= end )
-                    throw std::out_of_range(
-                        "tried to read a stride out of range " + filename +
-                        " @ " + to_string( start + stride * sizeof( T ) ) );
                 start += stride * sizeof( T );
                 return v;
+            } else {
+
+                throw std::runtime_error( "error opening file " + filename +
+                                          " does the folder exist?" );
+            }
+        };
+    }
+
+    template <typename T>
+    inline std::function<petsc::Vector()>
+    import_SeqVector_by_parts_fn( const std::string& filename,
+                                  const size_t stride,
+                                  const size_t start_ = 0 )
+    {
+        using namespace std;
+        return [filename, stride, start_]() -> petsc::Vector {
+            static ifstream file( filename.c_str(), ios::binary | ios::in );
+            static size_t start{start_ * stride};
+            static size_t end = [&]() {
+                file.seekg( 0, ios_base::seekdir::end );
+                return file.tellg();
+            }();
+
+            if ( file.is_open() ) {
+                if ( start >= end )
+                    throw std::out_of_range(
+                        "tried to read a stride out of range " + filename +
+                        " @ " + to_string( start ) );
+                auto v = make_unique<vector<complex<double>>>( stride );
+                file.seekg( start );
+                for ( auto i = 0; i < stride; ++i )
+                    file.read( reinterpret_cast<char*>( v->data() + i ),
+                               sizeof( T ) );
+
+                start += stride * sizeof( T );
+                return petsc::Vector( move( v ), petsc::Vector::type::seq );
             } else {
 
                 throw std::runtime_error( "error opening file " + filename +

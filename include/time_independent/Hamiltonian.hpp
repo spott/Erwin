@@ -164,7 +164,7 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
                     "attempting to put a value where one doesn't belong" );
         } );
 
-        this->H.assemble();
+        this->assemble();
         return ll;
     }
 
@@ -175,7 +175,7 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
     }
 
   private:
-    int n;
+    int n{1};
     function<Scalar( Scalar )> potential_;
     int ll;
 };

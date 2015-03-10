@@ -17,7 +17,7 @@ template <typename Container>
 struct AsyncLoader {
 
     AsyncLoader( size_t queue_size, function<Container()> f )
-        : find_next( f ), size( queue_size ),
+        : size( queue_size ), find_next( f ),
           worker_thread( &AsyncLoader<Container>::worker_thread_function, this )
     {
         // first, build the basics

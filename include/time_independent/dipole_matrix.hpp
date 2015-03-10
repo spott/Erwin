@@ -1,72 +1,91 @@
 #pragma once
 
 #include <time_independent/BasisLoader.hpp>
+#include <utilities/math.hpp>
 
 #include <petsc_cpp/Petsc.hpp>
 
 namespace Erwin
 {
 
-using namespace std;
-using namespace petsc;
 
 template <typename B>
-Matrix make_field_free( const vector<B>& prototype )
+Vector make_field_free( const std::vector<B>& prototype )
 {
+    using namespace petsc;
     // we make the assumption that all basis types have "e" as the energy
     // parameter, and it is always complex
-    Matrix m( prototype.size() );
+    Vector m( prototype.size() );
 
-    populate_matrix( m, []( int i, int j ) { return i == j; },
-                     [&prototype]( int i, int j ) { return prototype[i].e; } );
+    populate_vector( m, [&prototype]( int i ) { return prototype[i].e; } );
 
     return m;
 }
 
 template <typename B, typename Scalar>
-Matrix make_dipole_matrix( BasisParameters bparams, vector<B> prototype )
+Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
 {
+    using namespace std;
+    using namespace petsc;
     Matrix m( prototype.size() );
     auto dipole_selection_rules = [&]( int i, int j ) {
-        return abs( prototype[i].l - prototype[j].l ) == 1 &&
-               abs( prototype[i].m - prototype[j].m ) <= 1;
+        return ( abs( prototype[i].l - prototype[j].l ) == 1 &&
+                 abs( prototype[i].m - prototype[j].m ) <= 1 ) ||
+               prototype[i] == prototype[j];
     };
     m.reserve( dipole_selection_rules );
 
-    auto ranges = m_.get_ownership_rows();
+    auto ranges = m.get_ownership_rows();
     auto rowstart = ranges[0];
     auto rowend = ranges[1];
 
     PetscScalar value;
 
-    // l values that matter:
-    const vector<int> l_values = [&]() {
-        vector<B> l_value_tmp;
-        vector<int> ls;
-        unique_copy( prototype.begin() + rowstart, prototype.begin() + rowend,
-                     l_value_tmp, []( auto a, auto b ) { return a.l == b.l; } );
-        transform( l_value_tmp.begin(), l_value_tmp.end(), ls.begin(),
-                   []( auto a ) { return a.l; } );
-        return ls;
-    }();
+    auto grid = io::import_vector_binary<Scalar>( bparams.grid_filename() );
+    // integration is r^3 dr;
+    Vector integrator( grid.size() - 1, Vector::type::seq );
+    populate_vector( integrator, [&grid]( int i ) {
+        return grid[i] * ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
+    } );
+    Vector dr( grid.size() - 1, Vector::type::seq );
+    populate_vector( dr, [&grid]( int i ) {
+        return ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
+    } );
 
-    BasisLoader<Scalar> bl( bparams.l_filename( prototype[rowstart].l ),
-                            prototype[rowstart].n - prototype[rowstart].l - 1,
-                            bparams.l_filename( prototype[rowstart].l - 1 ),
-                            0, bparams.points );
+    BasisLoader<Scalar> bl( bparams );
     for ( PetscInt i = rowstart; i < rowend; i++ ) {
         for ( PetscInt j = 0u; j < prototype.size(); j++ ) {
             if ( dipole_selection_rules( i, j ) ) {
+                if ( i == j ) {
+                    m.set_value( i, j, 0. );
+                    continue;
+                }
                 // the meat:
-                auto left = bl.left_vector();
-                auto right = bl.right_vector();
+                Vector left = bl.left( prototype[i].n, prototype[i].l );
+                Vector right = bl.right( prototype[j].n, prototype[j].l );
 
-                auto rpart = math::integrate(left, grid, right);
-                auto angularpart = math::cg_coefficients(prototype[i], prototype[j]);
+                // fix it, see if that changes things:
+                auto rpart = inner_product( left, integrator, right );
+                auto angularpart =
+                    math::cg_coefficient( prototype[i], prototype[j] );
 
-                m_.set_value(i,j,rpart * angularpart);
+                if ( prototype[i].n == 2 && prototype[j].n == 2 ) {
+                    Vector::draw( {{left, right}} );
+                    cout << "n = 2: " << rpart* angularpart << endl;
+                    rpart =
+                        inner_product( right, conjugate( integrator ), left );
+                    cout << "n = 2 * : " << rpart* angularpart << endl;
+                    rpart =
+                        inner_product( conjugate( left ), integrator, right );
+                    cout << "n = 2 ** : " << rpart* angularpart << endl;
+                }
+                m.set_value( i, j, rpart * angularpart );
             }
         }
     }
+
+    m.assemble();
+
+    return m;
 }
 }
