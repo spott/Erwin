@@ -6,7 +6,7 @@ include ${SLEPC_DIR}/conf/slepc_common
 CPP_FLAGS=-Iinclude/ -I/Users/spott/Code/c++/petsc_cpp_wrapper/include/ -I. -std=c++1y -g -O0
 LDFLAGS= -L/Users/spott/Code/c++/petsc_cpp_wrapper/lib/ -lpetsc_cpp -lgsl -lboost_program_options-mt -lboost_iostreams-mt
 
-basis_src=src/test/ti_test.cpp
+basis_src=src/test/basis_test.cpp
 hamiltonian_src=src/test/dipole_test.cpp
 parameters_src=src/parameters/basis.cpp src/parameters/hamiltonian.cpp
 utilities_src=src/utilities/types.cpp src/utilities/math.cpp

@@ -17,14 +17,33 @@ int main( int argc, const char** argv )
 
     auto parameters = make_HamiltonianParameters( argc, argv );
     if ( !pc.rank() ) cout << parameters.print();
+    if ( !pc.rank() ) cout << parameters.basis.print();
     if ( !pc.rank() ) parameters.write();
 
     auto old_prototype = parameters.basis.read_prototype();
     auto new_prototype =
         shrink_prototype( old_prototype, parameters.max_basis() );
     parameters.write_prototype( new_prototype );
+    if ( !pc.rank() )
+        for ( auto& a : new_prototype ) cout << a << endl;
 
-    Matrix H = make_field_free( new_prototype );
-    Matrix D = make_dipole_matrix(
-        parameters.basis, new_prototype);
+    auto H = make_field_free( new_prototype );
+    parameters.write_field_free( H );
+    H.print();
+
+    if ( parameters.basis.ecs_percent == 0 ) {
+        auto D = make_dipole_matrix<BasisID, double>( parameters.basis,
+                                                      new_prototype );
+
+        D.print();
+
+        parameters.write_dipole( D );
+    } else {
+        auto D = make_dipole_matrix<BasisID, complex<double>>( parameters.basis,
+                                                               new_prototype );
+
+        D.print();
+
+        parameters.write_dipole( D );
+    }
 }

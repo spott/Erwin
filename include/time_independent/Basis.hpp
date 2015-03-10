@@ -37,12 +37,13 @@ struct Basis<HamiltonianType, true> {
 
     Basis( Hamiltonian<HamiltonianType>& H_ ) : Basis( H_, 100 ) {}
 
-    Vector inner_product_space_diag( vector<Scalar> grid )
+    Vector inner_product_space_diag( const vector<Scalar>& grid )
     {
         Vector v = H.H.get_right_vector();
         populate_vector( v, [&grid]( int i ) {
             return i == 0 ? grid[0] : grid[i] - grid[i - 1];
         } );
+        v.assemble();
         return v;
     }
 
@@ -77,14 +78,9 @@ struct Basis<HamiltonianType, true> {
     {
         // clear file first:
         if ( io::file_exists( filename ) ) io::empty_file( filename );
-        e.save_basis( filename, []( Vector& v ) {
-            petsc::map( v, []( auto a, auto i ) { return a.real(); } );
+        e.save_basis<Scalar>( filename, {{0, nstates}}, []( Vector& v ) {
+            petsc::map( v, []( auto a, auto ) { return a.real(); } );
         } );
-    }
-
-    void save_grid( string filename )
-    {
-        if ( !H.H.rank() ) io::export_vector_binary( filename, H.grid );
     }
 
     vector<QuantumNumbers>& add_evalues( vector<QuantumNumbers>& v )
@@ -138,6 +134,7 @@ struct Basis<HamiltonianType, false> {
         populate_vector( v, [&grid]( int i ) {
             return i == 0 ? grid[0] : grid[i] - grid[i - 1];
         } );
+        v.assemble();
         return v;
     }
 
@@ -181,13 +178,9 @@ struct Basis<HamiltonianType, false> {
         // clear file first:
         if ( io::file_exists( lfilename ) ) io::empty_file( lfilename );
         if ( io::file_exists( rfilename ) ) io::empty_file( rfilename );
-        el.save_basis( lfilename );
-        er.save_basis( rfilename );
-    }
-
-    void save_grid( string filename )
-    {
-        if ( !H.H.rank() ) io::export_vector_binary( filename, H.grid );
+        el.save_basis<Scalar>( lfilename, {{0, nstates}},
+                               []( auto a ) { a.conjugate(); } );
+        er.save_basis<Scalar>( rfilename, {{0, nstates}} );
     }
 
     vector<QuantumNumbers>& add_evalues( vector<QuantumNumbers>& v )
