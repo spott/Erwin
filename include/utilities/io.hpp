@@ -7,6 +7,9 @@
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
+#include <vector>
+
+#include <petsc_cpp/Petsc.hpp>
 
 namespace Erwin
 {
@@ -27,10 +30,10 @@ namespace io
         percent *= 100;
         std::string bar;
 
-        for ( int i = 0; i < 50; i++ ) {
+        for ( size_t i = 0u; i < 50; i++ ) {
             if ( i < ( percent / 2 ) ) {
                 bar.replace( i, 1, "=" );
-            } else if ( i == ( int( percent ) / 2 ) ) {
+            } else if ( i == ( size_t( percent ) / 2 ) ) {
                 bar.replace( i, 1, ">" );
             } else {
                 bar.replace( i, 1, " " );
@@ -50,7 +53,7 @@ namespace io
             char* a = new char[1025];
             getcwd( a, 1025 );
             std::string cwd = std::string( a );
-            delete a;
+            delete[] a;
             return cwd.append( "/" ).append( rel_path );
         } else
             return rel_path;
@@ -72,7 +75,6 @@ namespace io
 
     inline void empty_file( const std::string& filename )
     {
-        std::ios::pos_type size;
         std::ofstream file;
         auto openmode = std::ios::trunc;
         file.open( filename.c_str(), openmode );
@@ -88,7 +90,8 @@ namespace io
                                       const std::vector<T>& out,
                                       const std::vector<U>& prefix )
     {
-        std::ios::pos_type size;
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         std::ofstream file;
         file.open( filename.c_str(), std::ios::binary | std::ios::out );
         if ( file.is_open() ) {
@@ -110,7 +113,8 @@ namespace io
                                       const std::vector<T>& out,
                                       bool append = false )
     {
-        std::ios::pos_type size;
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         std::ofstream file;
         auto openmode = std::ios::binary | std::ios::out;
         if ( append ) openmode = openmode | std::ios::app;
@@ -122,19 +126,137 @@ namespace io
                                             ? out.end()
                                             : i + block_size );
                       j++ )
-                    ni[j - i] = static_cast<T2>( *j );
-                file.write(
-                    reinterpret_cast<const char*>( &ni ),
-                    static_cast<size_t>( sizeof( T2 ) *
-                                         ( ( out.end() - i < int( block_size ) )
-                                               ? out.end() - i
-                                               : block_size ) ) );
+                    ni[static_cast<size_t>( j - i )] = static_cast<T2>( *j );
+                file.write( reinterpret_cast<const char*>( &ni ),
+                            static_cast<std::streamsize>(
+                                sizeof( T2 ) *
+                                ( ( out.end() - i < int( block_size ) )
+                                      ? static_cast<size_t>( out.end() - i )
+                                      : block_size ) ) );
             }
             file.close();
         } else {
             throw std::runtime_error( "error opening file " + filename +
                                       " does the folder exist?" );
         }
+    }
+
+
+    template <typename T>
+    std::vector<T> import_vector_binary( const std::string& filename )
+    {
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
+        std::ifstream file;
+        file.open( filename.c_str(), std::ios::binary | std::ios::ate );
+        std::vector<T> vec;
+        if ( file.is_open() ) {
+            auto size = file.tellg();
+            if ( size != 0 ) {
+                vec.resize( static_cast<size_t>( size ) / sizeof( T ) );
+
+                // make sure we haven't rounded unintentionally
+                assert( static_cast<size_t>( size ) % sizeof( T ) == 0 );
+
+                file.seekg( 0, std::ios::beg );
+
+                file.read( reinterpret_cast<char*>( vec.data() ), size );
+                file.close();
+            } else {
+                throw std::runtime_error( "file is empty " + filename );
+            }
+        } else {
+            throw std::runtime_error( "file didn't open: " + filename );
+        }
+
+        return vec;
+    };
+
+    template <typename T>
+    inline std::function<std::vector<T>()>
+    import_vector_by_parts_fn( const std::string& filename,
+                               const std::streamoff stride,
+                               const std::streamoff start_ = 0 )
+    {
+        static_assert( std::is_trivially_copyable<T>(),
+                       "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
+        using namespace std;
+        ifstream file( filename.c_str(), ios::binary | ios::in );
+        std::streamoff start{start_ * stride};
+        std::streamoff end = [&]() {
+            file.seekg( 0, ios_base::seekdir::end );
+            return file.tellg();
+        }();
+        return [
+            file( std::move( file ) ),
+            stride,
+            start,
+            end,
+            filename
+        ]() mutable->vector<T>
+        {
+
+            if ( file.is_open() ) {
+                if ( start >= end )
+                    throw std::out_of_range(
+                        "tried to read a stride out of range " + filename +
+                        " @ " + to_string( start ) );
+                vector<T> v( stride );
+                file.seekg( start );
+                file.read( reinterpret_cast<char*>( v.data() ),
+                           stride * sizeof( T ) );
+
+                start += stride * sizeof( T );
+                return v;
+            } else {
+
+                throw std::runtime_error( "error opening file " + filename +
+                                          " does the folder exist?" );
+            }
+        };
+    }
+
+    template <typename T>
+    inline std::function<petsc::Vector()>
+    import_SeqVector_by_parts_fn( const std::string& filename,
+                                  const std::streamoff stride,
+                                  const std::streamoff start_ = 0 )
+    {
+        using namespace std;
+        ifstream file( filename.c_str(), ios::binary | ios::in );
+        std::streamoff start{start_ * stride};
+        std::streamoff end = [&]() {
+            file.seekg( 0, ios_base::seekdir::end );
+            return file.tellg();
+        }();
+
+        return [
+            file( std::move( file ) ),
+            stride,
+            start,
+            end,
+            filename
+        ]() mutable->petsc::Vector
+        {
+            if ( file.is_open() ) {
+                if ( start >= end )
+                    throw std::out_of_range(
+                        "tried to read a stride out of range " + filename +
+                        " @ " + to_string( start ) );
+                auto v = make_unique<vector<complex<double>>>( stride );
+                file.seekg( start );
+                for ( auto i = 0; i < stride; ++i )
+                    file.read( reinterpret_cast<char*>( v->data() + i ),
+                               sizeof( T ) );
+
+                start += stride * sizeof( T );
+                return petsc::Vector( move( v ), petsc::Vector::type::seq );
+            } else {
+
+                throw std::runtime_error( "error opening file " + filename +
+                                          " does the folder exist?" );
+            }
+        };
     }
 }
 }

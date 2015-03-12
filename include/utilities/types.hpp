@@ -9,6 +9,8 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/complex.hpp>
 
+#include <petsc_cpp/Petsc.hpp>
+
 namespace Erwin
 {
 template <typename iterator>
@@ -26,19 +28,9 @@ struct Range {
  ************************/
 
 struct BasisID {
-    PetscInt n, l, m;
+    unsigned n, l;
+    int m;
     PetscScalar e;
-    bool operator<( const BasisID b ) const
-    {
-        if ( this->l < b.l )
-            return true;
-        else if ( this->l == b.l && this->n < b.n )
-            return true;
-        else if ( this->l == b.l && this->n < b.n && this->m == b.m )
-            return true;
-        else
-            return false;
-    }
 
   private:
     friend class boost::serialization::access;
@@ -51,32 +43,20 @@ struct BasisID {
         ar& e;
     }
 };
-bool operator==( const BasisID& a, const BasisID& b )
-{
-    if ( a.l != b.l || a.n != b.n || a.e != b.e || a.m != b.m )
-        return false;
-    else
-        return true;
-}
-bool operator!=( const BasisID& a, const BasisID& b )
-{
-    if ( a.l != b.l || a.n != b.n || a.e != b.e || a.m != b.m )
-        return true;
-    else
-        return false;
-}
-std::istream& operator>>( std::istream& in, BasisID& b ) // input
-{
-    PetscReal er, ei;
-    in >> b.n >> b.l >> b.m >> er >> ei;
-    b.e = std::complex<double>( er, ei );
-    return in;
-}
-std::ostream& operator<<( std::ostream& out, const BasisID& b ) // output
-{
-    out << b.n << ", " << b.l << ", " << b.m << ", " << b.e.real();
-    return out;
-}
+
+
+bool operator<( const BasisID& a, const BasisID& b );
+
+bool operator==( const BasisID& a, const BasisID& b );
+
+bool operator<=( const BasisID& a, const BasisID& b );
+
+bool operator>( const BasisID& a, const BasisID& b );
+
+bool operator!=( const BasisID& a, const BasisID& b );
+
+std::istream& operator>>( std::istream& in, BasisID& b );        // input
+std::ostream& operator<<( std::ostream& out, const BasisID& b ); // output
 }
 
 namespace std
@@ -86,12 +66,27 @@ struct hash<Erwin::BasisID> {
   public:
     size_t operator()( const Erwin::BasisID& a ) const
     {
-        return a.n + 10000 * a.l + 1000000 * a.m;
+        return static_cast<size_t>( a.n ) + 10000 * static_cast<size_t>( a.l ) +
+               1000000u * static_cast<size_t>( a.m );
     }
 };
 }
 
 // End BasisID definitions
+
+/************************
+ * Angular.  Part of BasisID:
+ ************************/
+namespace Erwin
+{
+
+struct Angular {
+    unsigned l;
+    int m;
+
+    Angular( const BasisID& a ) : l( a.l ), m( a.m ) {}
+};
+}
 
 
 /************************

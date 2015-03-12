@@ -23,26 +23,26 @@ struct Basis<HamiltonianType, true> {
         typename HamiltonianTraits<HamiltonianType>::QuantumNumbers;
     using Scalar = typename HamiltonianTraits<HamiltonianType>::Scalar;
 
-    Basis( Hamiltonian<HamiltonianType>& H_, int num_states )
+    Basis( Hamiltonian<HamiltonianType>& H_, unsigned num_states )
         : nstates( num_states ), H( H_ ),
           e( H.H,
              num_states,
              EigenvalueSolver::Which::smallest_real,
              EigenvalueSolver::Type::hermitian )
     {
-        e.dimensions( num_states, max( num_states, 600 ) );
+        e.dimensions( static_cast<int>( nstates ),
+                      static_cast<int>( max( nstates, 600u ) ) );
         e.balance( EPS_BALANCE_TWOSIDE, 10 );
         e.inner_product_space( inner_product_space_diag( H.grid ) );
     }
 
-    Basis( Hamiltonian<HamiltonianType>& H_ ) : Basis( H_, 100 ) {}
-
-    Vector inner_product_space_diag( vector<Scalar> grid )
+    Vector inner_product_space_diag( const vector<Scalar>& grid )
     {
         Vector v = H.H.get_right_vector();
-        populate_vector( v, [&grid]( int i ) {
+        populate_vector( v, [&grid]( unsigned i ) {
             return i == 0 ? grid[0] : grid[i] - grid[i - 1];
         } );
+        v.assemble();
         return v;
     }
 
@@ -64,7 +64,8 @@ struct Basis<HamiltonianType, true> {
 
         // shift/invert to evalue, and set initial vector to speed up
         // computation.
-        e.dimensions( nstates, max( nstates, 600 ) );
+        e.dimensions( static_cast<int>( nstates ),
+                      static_cast<int>( max( nstates, 600u ) ) );
         e.tolerances( 1e-16, 400 );
         e.shift_invert( ep.evalue );
         e.set_initial_vector( ep.evector );
@@ -77,26 +78,22 @@ struct Basis<HamiltonianType, true> {
     {
         // clear file first:
         if ( io::file_exists( filename ) ) io::empty_file( filename );
-        e.save_basis( filename, []( Vector& v ) {
-            map( v, []( auto a, auto i ) { return a.real(); } );
+        e.save_basis<Scalar>( filename, {{0, static_cast<int>( nstates )}},
+                              []( Vector& v ) {
+            petsc::map( v, []( auto a, auto ) { return a.real(); } );
         } );
-    }
-
-    void save_grid( string filename )
-    {
-        if ( !H.H.rank() ) io::export_vector_binary( filename, H.grid );
     }
 
     vector<QuantumNumbers>& add_evalues( vector<QuantumNumbers>& v )
     {
-        for ( int i = 0; i < min( nstates, e.num_converged() ); i++ ) {
+        for ( unsigned i = 0; i < min( nstates, e.num_converged() ); i++ ) {
             v.push_back( H.basis_set_inserter( e.get_eigenvalue( i ) ) );
         }
 
         return v;
     }
 
-    int nstates;
+    unsigned nstates;
     Hamiltonian<HamiltonianType>& H;
     EigenvalueSolver e;
 
@@ -110,7 +107,7 @@ struct Basis<HamiltonianType, false> {
     using Scalar = typename HamiltonianTraits<HamiltonianType>::Scalar;
 
 
-    Basis( Hamiltonian<HamiltonianType>& H_, int num_states )
+    Basis( Hamiltonian<HamiltonianType>& H_, unsigned num_states )
         : nstates( num_states ), H( H_ ),
           er( H.H,
               nstates,
@@ -121,10 +118,12 @@ struct Basis<HamiltonianType, false> {
               EigenvalueSolver::Which::smallest_real,
               EigenvalueSolver::Type::nonhermitian )
     {
-        er.dimensions( num_states, max( num_states, 600 ) );
+        er.dimensions( static_cast<int>( nstates ),
+                       static_cast<int>( max( nstates, 600u ) ) );
         er.balance( EPS_BALANCE_TWOSIDE, 10 );
         er.inner_product_space( inner_product_space_diag( H.grid ) );
-        el.dimensions( num_states, max( num_states, 600 ) );
+        el.dimensions( static_cast<int>( nstates ),
+                       static_cast<int>( max( nstates, 600u ) ) );
         el.balance( EPS_BALANCE_TWOSIDE, 10 );
         el.inner_product_space(
             move( inner_product_space_diag( H.grid ).conjugate() ) );
@@ -135,9 +134,11 @@ struct Basis<HamiltonianType, false> {
     Vector inner_product_space_diag( vector<Scalar> grid )
     {
         Vector v = H.H.get_right_vector();
-        populate_vector( v, [&grid]( int i ) {
+        populate_vector( v, [&grid]( int i_ ) {
+            unsigned i = static_cast<unsigned>( i_ );
             return i == 0 ? grid[0] : grid[i] - grid[i - 1];
         } );
+        v.assemble();
         return v;
     }
 
@@ -158,7 +159,8 @@ struct Basis<HamiltonianType, false> {
 
         // shift/invert to evalue, and set initial vector to speed up
         // computation.
-        er.dimensions( nstates, max( nstates, 600 ) );
+        er.dimensions( static_cast<int>( nstates ),
+                       static_cast<int>( max( nstates, 600u ) ) );
         er.tolerances( 1e-16, 400 );
         er.shift_invert( ep.evalue );
         er.set_initial_vector( ep.evector );
@@ -166,7 +168,8 @@ struct Basis<HamiltonianType, false> {
 
         // next version...
         el.op( H.HT );
-        el.dimensions( nstates, max( nstates, 600 ) );
+        el.dimensions( static_cast<int>( nstates ),
+                       static_cast<int>( max( nstates, 600u ) ) );
         el.tolerances( 1e-16, 400 );
         el.shift_invert( ep.evalue );
         el.set_initial_vector( ep.evector );
@@ -181,25 +184,21 @@ struct Basis<HamiltonianType, false> {
         // clear file first:
         if ( io::file_exists( lfilename ) ) io::empty_file( lfilename );
         if ( io::file_exists( rfilename ) ) io::empty_file( rfilename );
-        el.save_basis( lfilename );
-        er.save_basis( rfilename );
-    }
-
-    void save_grid( string filename )
-    {
-        if ( !H.H.rank() ) io::export_vector_binary( filename, H.grid );
+        el.save_basis<Scalar>( lfilename, {{0, static_cast<int>( nstates )}},
+                               []( auto a ) { a.conjugate(); } );
+        er.save_basis<Scalar>( rfilename, {{0, static_cast<int>( nstates )}} );
     }
 
     vector<QuantumNumbers>& add_evalues( vector<QuantumNumbers>& v )
     {
-        for ( int i = 0; i < min( nstates, er.num_converged() ); i++ ) {
+        for ( unsigned i = 0; i < min( nstates, er.num_converged() ); i++ ) {
             v.push_back( H.basis_set_inserter( er.get_eigenvalue( i ) ) );
         }
 
         return v;
     }
 
-    int nstates;
+    unsigned nstates;
     Hamiltonian<HamiltonianType>& H;
     EigenvalueSolver er;
     EigenvalueSolver el;
@@ -209,15 +208,14 @@ struct Basis<HamiltonianType, false> {
 
 
 template <typename T>
-Basis<T> make_Basis( Hamiltonian<T>& H, int num_states )
+Basis<T> make_Basis( Hamiltonian<T>& H, unsigned num_states )
 {
     return Basis<T>( H, num_states );
 }
 
 template <typename Scalar, typename Funct>
-SphericalHamiltonian<Scalar> make_SphericalHamiltonian( vector<Scalar>& grid,
-                                                        Funct potential,
-                                                        int l_quantum_number )
+SphericalHamiltonian<Scalar> make_SphericalHamiltonian(
+    vector<Scalar>& grid, Funct potential, unsigned l_quantum_number )
 {
     return SphericalHamiltonian<Scalar>( grid, potential, l_quantum_number );
 }

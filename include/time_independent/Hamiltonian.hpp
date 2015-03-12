@@ -27,7 +27,8 @@ struct Hamiltonian<HamiltonianType, true> {
 
     // matrix uses grid_.size() - 1.  grid should probably be split out into its
     // own class eventually.
-    Hamiltonian( vector<Scalar>& grid_ ) : H( grid_.size() - 1 ), grid( grid_ )
+    Hamiltonian( vector<Scalar>& grid_ )
+        : H( static_cast<unsigned>( grid_.size() ) - 1 ), grid( grid_ )
     {
     }
 
@@ -52,7 +53,8 @@ struct Hamiltonian<HamiltonianType, false> {
 
     // matrix uses grid_.size() - 1.  grid should probably be split out into its
     // own class eventually.
-    Hamiltonian( vector<Scalar>& grid_ ) : H( grid_.size() - 1 ), grid( grid_ )
+    Hamiltonian( vector<Scalar>& grid_ )
+        : H( static_cast<unsigned>( grid_.size() ) - 1 ), grid( grid_ )
     {
     }
 
@@ -84,9 +86,9 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
 
     SphericalHamiltonian( vector<Scalar> grid,
                           function<Scalar( Scalar )> potential,
-                          int quantum_number_l = 0 )
-        : Hamiltonian<ThisType>( grid ), potential_( potential ),
-          ll( quantum_number_l )
+                          unsigned quantum_number_l = 0 )
+        : Hamiltonian<ThisType>( grid ), ll( quantum_number_l ),
+          potential_( potential )
 
     {
         // Make the matrix (for second order accurate):
@@ -94,7 +96,9 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
             []( int i, int j ) { return i == j || i == j + 1 || i == j - 1; };
 
         this->H.reserve( nonzeros );
-        populate_matrix( this->H, nonzeros, [this]( int i, int j ) -> Scalar {
+        populate_matrix( this->H, nonzeros, [this]( int i_, int j_ ) -> Scalar {
+            unsigned i = static_cast<unsigned>( i_ );
+            unsigned j = static_cast<unsigned>( j_ );
             if ( i != j )
                 return this->second_derivative_2( i, j );
             else if ( i == j )
@@ -110,7 +114,7 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
     }
 
     // 2nd order accurate 2nd derivative
-    Scalar second_derivative_2( int i, int j )
+    Scalar second_derivative_2( unsigned i, unsigned j )
     {
         auto& grid = Hamiltonian<ThisType>::grid;
         if ( i == j ) {
@@ -142,17 +146,19 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
         return ll * ( ll + 1. ) / ( 2. * r * r );
     }
 
-    int& l() { return ll; }
+    unsigned& l() { return ll; }
     // reminder: expensive
-    int& l( int l )
+    unsigned& l( unsigned l )
     {
         if ( l == ll ) return ll;
 
         ll = l;
         n = l + 1;
-        auto nonzeros =
-            []( int i, int j ) { return i == j || i == j + 1 || i == j - 1; };
-        populate_matrix( this->H, nonzeros, [this]( int i, int j ) -> Scalar {
+        auto nonzeros = []( unsigned i, unsigned j ) {
+            return i == j || i == j + 1 || i == j - 1;
+        };
+        populate_matrix( this->H, nonzeros,
+                         [this]( unsigned i, unsigned j ) -> Scalar {
             if ( i != j )
                 return this->second_derivative_2( i, j );
             else if ( i == j )
@@ -164,7 +170,7 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
                     "attempting to put a value where one doesn't belong" );
         } );
 
-        this->H.assemble();
+        this->assemble();
         return ll;
     }
 
@@ -175,9 +181,9 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
     }
 
   private:
-    int n;
+    unsigned n{1};
+    unsigned ll;
     function<Scalar( Scalar )> potential_;
-    int ll;
 };
 
 template <typename Scalar_>
