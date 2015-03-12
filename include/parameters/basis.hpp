@@ -2,6 +2,7 @@
 
 #include <utilities/io.hpp>
 #include <utilities/types.hpp>
+#include <experimental/optional>
 
 namespace Erwin
 {
@@ -10,34 +11,33 @@ using namespace std;
 
 struct BasisParameters {
 
-    BasisParameters( string folder,
-                     double rmax,
-                     double rmin,
-                     size_t points,
-                     size_t nmax,
-                     size_t lmax,
-                     double charge,
-                     string atom )
-        : rmax( rmax ), rmin( rmin ), points( points ), nmax( nmax ),
-          lmax( lmax ), charge( charge ), folder( folder ), atom( atom ),
-          ecs_percent( 0 ), ecs_alpha( 0 )
+    BasisParameters( string folder_,
+                     double rmax_,
+                     double rmin_,
+                     size_t points_,
+                     unsigned nmax_,
+                     unsigned lmax_,
+                     double charge_,
+                     string atom_ )
+        : rmax( rmax_ ), rmin( rmin_ ), points( points_ ), nmax( nmax_ ),
+          lmax( lmax_ ), charge( charge_ ), folder( folder_ ), atom( atom_ )
     {
         assert( nmax > lmax + 1 );
     }
 
-    BasisParameters( string folder,
-                     double rmax,
-                     double rmin,
-                     size_t points,
-                     size_t nmax,
-                     size_t lmax,
-                     double charge,
-                     string atom,
-                     double ecs_percent,
-                     double ecs_alpha )
-        : rmax( rmax ), rmin( rmin ), points( points ), nmax( nmax ),
-          lmax( lmax ), charge( charge ), folder( folder ), atom( atom ),
-          ecs_percent( ecs_percent ), ecs_alpha( ecs_alpha )
+    BasisParameters( string folder_,
+                     double rmax_,
+                     double rmin_,
+                     size_t points_,
+                     unsigned nmax_,
+                     unsigned lmax_,
+                     double charge_,
+                     string atom_,
+                     double ecs_percent_,
+                     double ecs_alpha_ )
+        : rmax( rmax_ ), rmin( rmin_ ), points( points_ ), nmax( nmax_ ),
+          lmax( lmax_ ), charge( charge_ ), folder( folder_ ), atom( atom_ ),
+          ecs_percent( ecs_percent_ ), ecs_alpha( ecs_alpha_ )
     {
         assert( nmax > lmax + 1 );
     }
@@ -81,14 +81,14 @@ struct BasisParameters {
     double rmax;
     double rmin;
     size_t points;
-    size_t nmax;
-    size_t lmax;
+    unsigned nmax;
+    unsigned lmax;
     double charge;
     string folder;
     string atom;
     // the rest of these we ignore unless we are doing ecs stuff
-    double ecs_percent;
-    double ecs_alpha;
+    experimental::optional<double> ecs_percent;
+    experimental::optional<double> ecs_alpha;
 };
 
 const BasisParameters make_BasisParameters( int argc, const char** argv );

@@ -9,11 +9,12 @@ namespace math
     // Constants:
 
     template <typename T>
-    const T PI = T( std::atan( 1.0 ) * 4.0 );
+    constexpr T PI = static_cast<T>(
+        3.1415926535897932384626433832795028841971693993751058209 );
     template <typename T>
-    const T C = T( 137.03599907444 );
+    constexpr T C = static_cast<T>( 137.03599907444 );
     template <typename T>
-    const T ALPHA = T( 1. / 137.03599907444 );
+    constexpr T ALPHA = static_cast<T>( 1. / 137.03599907444 );
 
     template <typename T>
     inline constexpr int signum( T x, std::false_type /*is_signed*/ )
@@ -36,11 +37,12 @@ namespace math
     std::complex<double> cg_coefficient( const Angular& init,
                                          const Angular& fin );
 
-    std::vector<std::complex<double>> make_ecs_grid( int grid_size,
+    std::vector<std::complex<double>> make_ecs_grid( size_t grid_size,
                                                      double rmax,
                                                      double exterior_percent,
                                                      double alpha );
 
-    std::vector<double> make_equally_spaced_grid( int grid_size, double rmax );
+    std::vector<double> make_equally_spaced_grid( size_t grid_size,
+                                                  double rmax );
 }
 }

@@ -30,10 +30,10 @@ namespace io
         percent *= 100;
         std::string bar;
 
-        for ( int i = 0; i < 50; i++ ) {
+        for ( size_t i = 0u; i < 50; i++ ) {
             if ( i < ( percent / 2 ) ) {
                 bar.replace( i, 1, "=" );
-            } else if ( i == ( int( percent ) / 2 ) ) {
+            } else if ( i == ( size_t( percent ) / 2 ) ) {
                 bar.replace( i, 1, ">" );
             } else {
                 bar.replace( i, 1, " " );
@@ -126,13 +126,13 @@ namespace io
                                             ? out.end()
                                             : i + block_size );
                       j++ )
-                    ni[j - i] = static_cast<T2>( *j );
-                file.write(
-                    reinterpret_cast<const char*>( &ni ),
-                    static_cast<size_t>( sizeof( T2 ) *
-                                         ( ( out.end() - i < int( block_size ) )
-                                               ? out.end() - i
-                                               : block_size ) ) );
+                    ni[static_cast<size_t>( j - i )] = static_cast<T2>( *j );
+                file.write( reinterpret_cast<const char*>( &ni ),
+                            static_cast<std::streamsize>(
+                                sizeof( T2 ) *
+                                ( ( out.end() - i < int( block_size ) )
+                                      ? static_cast<size_t>( out.end() - i )
+                                      : block_size ) ) );
             }
             file.close();
         } else {
@@ -153,11 +153,10 @@ namespace io
         if ( file.is_open() ) {
             auto size = file.tellg();
             if ( size != 0 ) {
-                vec.resize( size / sizeof( T ) );
+                vec.resize( static_cast<size_t>( size ) / sizeof( T ) );
 
                 // make sure we haven't rounded unintentionally
-                assert( static_cast<double>( size ) / sizeof( T ) ==
-                        vec.size() );
+                assert( static_cast<size_t>( size ) % sizeof( T ) == 0 );
 
                 file.seekg( 0, std::ios::beg );
 
@@ -176,19 +175,26 @@ namespace io
     template <typename T>
     inline std::function<std::vector<T>()>
     import_vector_by_parts_fn( const std::string& filename,
-                               const size_t stride,
-                               const size_t start_ = 0 )
+                               const std::streamoff stride,
+                               const std::streamoff start_ = 0 )
     {
         static_assert( std::is_trivially_copyable<T>(),
                        "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
         using namespace std;
-        return [filename, stride, start_]() -> vector<T> {
-            static ifstream file( filename.c_str(), ios::binary | ios::in );
-            static size_t start{start_ * stride};
-            static size_t end = [&]() {
-                file.seekg( 0, ios_base::seekdir::end );
-                return file.tellg();
-            }();
+        ifstream file( filename.c_str(), ios::binary | ios::in );
+        std::streamoff start{start_ * stride};
+        std::streamoff end = [&]() {
+            file.seekg( 0, ios_base::seekdir::end );
+            return file.tellg();
+        }();
+        return [
+            file( std::move( file ) ),
+            stride,
+            start,
+            end,
+            filename
+        ]() mutable->vector<T>
+        {
 
             if ( file.is_open() ) {
                 if ( start >= end )
@@ -213,18 +219,25 @@ namespace io
     template <typename T>
     inline std::function<petsc::Vector()>
     import_SeqVector_by_parts_fn( const std::string& filename,
-                                  const size_t stride,
-                                  const size_t start_ = 0 )
+                                  const std::streamoff stride,
+                                  const std::streamoff start_ = 0 )
     {
         using namespace std;
-        return [filename, stride, start_]() -> petsc::Vector {
-            static ifstream file( filename.c_str(), ios::binary | ios::in );
-            static size_t start{start_ * stride};
-            static size_t end = [&]() {
-                file.seekg( 0, ios_base::seekdir::end );
-                return file.tellg();
-            }();
+        ifstream file( filename.c_str(), ios::binary | ios::in );
+        std::streamoff start{start_ * stride};
+        std::streamoff end = [&]() {
+            file.seekg( 0, ios_base::seekdir::end );
+            return file.tellg();
+        }();
 
+        return [
+            file( std::move( file ) ),
+            stride,
+            start,
+            end,
+            filename
+        ]() mutable->petsc::Vector
+        {
             if ( file.is_open() ) {
                 if ( start >= end )
                     throw std::out_of_range(

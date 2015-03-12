@@ -17,7 +17,7 @@ Vector make_field_free( const std::vector<B>& prototype )
     // parameter, and it is always complex
     Vector m( prototype.size() );
 
-    populate_vector( m, [&prototype]( int i ) { return prototype[i].e; } );
+    populate_vector( m, [&prototype]( unsigned i ) { return prototype[i].e; } );
 
     return m;
 }
@@ -28,8 +28,9 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
     using namespace std;
     using namespace petsc;
     Matrix m( prototype.size() );
-    auto dipole_selection_rules = [&]( int i, int j ) {
-        return ( abs( prototype[i].l - prototype[j].l ) == 1 &&
+    auto dipole_selection_rules = [&]( unsigned i, unsigned j ) {
+        return ( abs( static_cast<int>( prototype[i].l - prototype[j].l ) ) ==
+                     1 &&
                  abs( prototype[i].m - prototype[j].m ) <= 1 ) ||
                prototype[i] == prototype[j];
     };
@@ -44,20 +45,23 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
     auto grid = io::import_vector_binary<Scalar>( bparams.grid_filename() );
     // integration is r^3 dr;
     Vector integrator( grid.size() - 1, Vector::type::seq );
-    populate_vector( integrator, [&grid]( int i ) {
+    populate_vector( integrator, [&grid]( unsigned i ) {
         return grid[i] * ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
     } );
     Vector dr( grid.size() - 1, Vector::type::seq );
-    populate_vector( dr, [&grid]( int i ) {
+    populate_vector( dr, [&grid]( unsigned i ) {
         return ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
     } );
 
     BasisLoader<Scalar> bl( bparams );
-    for ( PetscInt i = rowstart; i < rowend; i++ ) {
-        for ( PetscInt j = 0u; j < prototype.size(); j++ ) {
+    for ( PetscInt i_ = rowstart; i_ < rowend; i_++ ) {
+        for ( PetscInt j_ = 0; j_ < static_cast<int>( prototype.size() );
+              j_++ ) {
+            unsigned i = static_cast<unsigned>( i_ );
+            unsigned j = static_cast<unsigned>( j_ );
             if ( dipole_selection_rules( i, j ) ) {
                 if ( i == j ) {
-                    m.set_value( i, j, 0. );
+                    m.set_value( i_, j_, 0. );
                     continue;
                 }
                 // the meat:
@@ -79,7 +83,7 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
                         inner_product( conjugate( left ), integrator, right );
                     cout << "n = 2 ** : " << rpart* angularpart << endl;
                 }
-                m.set_value( i, j, rpart * angularpart );
+                m.set_value( i_, j_, rpart * angularpart );
             }
         }
     }

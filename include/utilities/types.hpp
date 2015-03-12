@@ -28,7 +28,8 @@ struct Range {
  ************************/
 
 struct BasisID {
-    PetscInt n, l, m;
+    unsigned n, l;
+    int m;
     PetscScalar e;
 
   private:
@@ -65,7 +66,8 @@ struct hash<Erwin::BasisID> {
   public:
     size_t operator()( const Erwin::BasisID& a ) const
     {
-        return a.n + 10000 * a.l + 1000000 * a.m;
+        return static_cast<size_t>( a.n ) + 10000 * static_cast<size_t>( a.l ) +
+               1000000u * static_cast<size_t>( a.m );
     }
 };
 }
@@ -79,7 +81,7 @@ namespace Erwin
 {
 
 struct Angular {
-    unsigned int l;
+    unsigned l;
     int m;
 
     Angular( const BasisID& a ) : l( a.l ), m( a.m ) {}

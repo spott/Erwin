@@ -1,6 +1,7 @@
 #pragma once
 
 #include <parameters/basis.hpp>
+#include <experimental/optional>
 
 namespace Erwin
 {
@@ -9,14 +10,23 @@ using namespace std;
 
 struct HamiltonianParameters {
 
-    HamiltonianParameters( string folder,
-                           BasisParameters basis,
-                           size_t nmax,
-                           size_t lmax,
-                           size_t mmax,
-                           double emax )
-        : nmax( nmax ), lmax( lmax ), mmax( mmax ), emax( emax ),
-          folder( folder ), basis( basis )
+    HamiltonianParameters( string folder_,
+                           BasisParameters basis_,
+                           unsigned nmax_,
+                           unsigned lmax_,
+                           unsigned mmax_,
+                           double emax_ )
+        : nmax( nmax_ ), lmax( lmax_ ), mmax( mmax_ ), emax( emax_ ),
+          folder( folder_ ), basis( basis_ )
+    {
+    }
+    HamiltonianParameters( string folder_,
+                           unsigned nmax_,
+                           unsigned lmax_,
+                           unsigned mmax_,
+                           double emax_ )
+        : nmax( nmax_ ), lmax( lmax_ ), mmax( mmax_ ), emax( emax_ ),
+          folder( folder_ )
     {
     }
 
@@ -61,16 +71,16 @@ struct HamiltonianParameters {
     BasisID max_basis() const
     {
         return BasisID{
-            int( nmax ), int( lmax ), int( mmax ), complex<double>( emax )};
+            nmax, lmax, static_cast<int>( mmax ), complex<double>( emax )};
     }
     string print() const;
 
-    size_t nmax;
-    size_t lmax;
-    size_t mmax;
+    unsigned nmax;
+    unsigned lmax;
+    unsigned mmax;
     double emax;
     string folder;
-    BasisParameters basis;
+    experimental::optional<BasisParameters> basis;
 };
 
 

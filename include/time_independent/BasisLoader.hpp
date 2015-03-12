@@ -18,9 +18,9 @@ template <typename Scalar>
 struct BasisLoader;
 template <>
 struct BasisLoader<complex<double>> {
-    BasisLoader( BasisParameters basis ) : basis( basis ) {}
+    BasisLoader( BasisParameters basis_ ) : basis( basis_ ) {}
 
-    Vector left( size_t n, size_t l )
+    const Vector left( size_t n, size_t l )
     {
         auto& ll = left_l;
         auto& file = left_file;
@@ -43,7 +43,7 @@ struct BasisLoader<complex<double>> {
             return Vector( ptr, basis.points, Vector::type::seq );
         }
     }
-    Vector right( size_t n, size_t l )
+    const Vector right( size_t n, size_t l )
     {
         auto& ll = right_l;
         auto& file = right_file;
@@ -78,7 +78,7 @@ struct BasisLoader<complex<double>> {
 
 template <>
 struct BasisLoader<double> {
-    BasisLoader( BasisParameters basis ) : basis( basis ) {}
+    BasisLoader( BasisParameters basis_ ) : basis( basis_ ) {}
 
     Vector left( size_t n, size_t l )
     {

@@ -28,8 +28,8 @@ string BasisParameters::print() const
     ss << "basis_charge=" << charge << endl;
     ss << "basis_folder=" << folder << endl;
     ss << "basis_atom=" << atom << endl;
-    ss << "basis_ecs_percent=" << ecs_percent << endl;
-    ss << "basis_ecs_alpha=" << ecs_alpha << endl;
+    if ( ecs_percent ) ss << "basis_ecs_percent=" << *ecs_percent << endl;
+    if ( ecs_alpha ) ss << "basis_ecs_alpha=" << *ecs_alpha << endl;
     return ss.str();
 }
 
@@ -51,9 +51,9 @@ const BasisParameters make_BasisParameters( int argc, const char** argv )
         "the minimum r value" )( "basis_points",
                                  po::value<size_t>()->default_value( 10000 ),
                                  "the number of points on the grid" )(
-        "basis_nmax", po::value<size_t>()->default_value( 100 ),
+        "basis_nmax", po::value<unsigned>()->default_value( 100 ),
         "the maximum principle atomic number" )(
-        "basis_lmax", po::value<size_t>()->default_value( 10 ),
+        "basis_lmax", po::value<unsigned>()->default_value( 10 ),
         "the maximum angular atomic number" )(
         "basis_charge", po::value<double>()->default_value( 0 ),
         "the charge on the nucleus" )(
@@ -89,20 +89,19 @@ const BasisParameters make_BasisParameters( int argc, const char** argv )
                vm );
     po::notify( vm );
 
-    if ( vm["basis_ecs_percent"].as<double>() == 0 or
-         vm["basis_ecs_alpha"].as<double>() == 0 )
+    if ( vm["basis_ecs_percent"].empty() or vm["basis_ecs_alpha"].empty() )
         return BasisParameters(
             io::absolute_path( vm["basis_folder"].as<string>() ),
             vm["basis_rmax"].as<double>(), vm["basis_rmin"].as<double>(),
-            vm["basis_points"].as<size_t>(), vm["basis_nmax"].as<size_t>(),
-            vm["basis_lmax"].as<size_t>(), vm["basis_charge"].as<double>(),
+            vm["basis_points"].as<size_t>(), vm["basis_nmax"].as<unsigned>(),
+            vm["basis_lmax"].as<unsigned>(), vm["basis_charge"].as<double>(),
             vm["basis_atom"].as<string>() );
     else
         return BasisParameters(
             io::absolute_path( vm["basis_folder"].as<string>() ),
             vm["basis_rmax"].as<double>(), vm["basis_rmin"].as<double>(),
-            vm["basis_points"].as<size_t>(), vm["basis_nmax"].as<size_t>(),
-            vm["basis_lmax"].as<size_t>(), vm["basis_charge"].as<double>(),
+            vm["basis_points"].as<size_t>(), vm["basis_nmax"].as<unsigned>(),
+            vm["basis_lmax"].as<unsigned>(), vm["basis_charge"].as<double>(),
             vm["basis_atom"].as<string>(), vm["basis_ecs_percent"].as<double>(),
             vm["basis_ecs_alpha"].as<double>() );
 }

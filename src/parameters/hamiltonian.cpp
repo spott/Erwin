@@ -23,8 +23,9 @@ string HamiltonianParameters::print() const
     ss << "hamiltonian_nmax=" << nmax << endl;
     ss << "hamiltonian_lmax=" << lmax << endl;
     ss << "hamiltonian_folder=" << folder << endl;
-    ss << "hamiltonian_basis_config=" << basis.folder
-       << "/BasisParameters.config" << endl;
+    if ( basis )
+        ss << "hamiltonian_basis_config=" << basis->folder
+           << "/BasisParameters.config" << endl;
     return ss.str();
 }
 
@@ -55,13 +56,13 @@ const HamiltonianParameters make_HamiltonianParameters( int argc,
     po::options_description hamiltonian( "Hamiltonian Options" );
     hamiltonian.add_options()
 
-        ( "hamiltonian_nmax", po::value<size_t>()->default_value( 100 ),
+        ( "hamiltonian_nmax", po::value<unsigned>()->default_value( 100 ),
           "the maximum principle atomic number" )
 
-            ( "hamiltonian_lmax", po::value<size_t>()->default_value( 10 ),
+            ( "hamiltonian_lmax", po::value<unsigned>()->default_value( 10 ),
               "the maximum angular atomic number" )
 
-                ( "hamiltonian_mmax", po::value<size_t>()->default_value( 0 ),
+                ( "hamiltonian_mmax", po::value<unsigned>()->default_value( 0 ),
                   "the maximum magnetic atomic number" )
 
                     ( "hamiltonian_emax",
@@ -98,17 +99,25 @@ const HamiltonianParameters make_HamiltonianParameters( int argc,
     po::notify( vm );
 
     // now get the BasisParameters structure:
-    const char* fake_commands[3] = {
-        "placeholder",
-        "--basis_config",
-        vm["hamiltonian_basis_config"].as<string>().c_str()};
-    auto basis = make_BasisParameters( 3, fake_commands );
+    if ( !vm["hamiltonian_basis_config"].empty() ) {
+        const char* fake_commands[3] = {
+            "placeholder",
+            "--basis_config",
+            vm["hamiltonian_basis_config"].as<string>().c_str()};
+        auto basis = make_BasisParameters( 3, fake_commands );
 
-    return HamiltonianParameters(
-        io::absolute_path( vm["hamiltonian_folder"].as<string>() ), basis,
-        vm["hamiltonian_nmax"].as<size_t>(),
-        vm["hamiltonian_lmax"].as<size_t>(),
-        vm["hamiltonian_mmax"].as<size_t>(),
-        vm["hamiltonian_emax"].as<double>() );
+        return HamiltonianParameters(
+            io::absolute_path( vm["hamiltonian_folder"].as<string>() ), basis,
+            vm["hamiltonian_nmax"].as<unsigned>(),
+            vm["hamiltonian_lmax"].as<unsigned>(),
+            vm["hamiltonian_mmax"].as<unsigned>(),
+            vm["hamiltonian_emax"].as<double>() );
+    } else
+        return HamiltonianParameters(
+            io::absolute_path( vm["hamiltonian_folder"].as<string>() ),
+            vm["hamiltonian_nmax"].as<unsigned>(),
+            vm["hamiltonian_lmax"].as<unsigned>(),
+            vm["hamiltonian_mmax"].as<unsigned>(),
+            vm["hamiltonian_emax"].as<double>() );
 }
 }

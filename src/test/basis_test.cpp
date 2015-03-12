@@ -14,17 +14,17 @@ int main( int argc, const char** argv )
     if ( !pc.rank() ) cout << parameters.print();
     if ( !pc.rank() ) parameters.write();
 
-    if ( parameters.ecs_percent != 0 ) {
+    if ( parameters.ecs_percent ) {
         auto grid = Erwin::math::make_ecs_grid(
-            parameters.points, parameters.rmax, parameters.ecs_percent,
-            parameters.ecs_alpha );
+            parameters.points, parameters.rmax, *( parameters.ecs_percent ),
+            *( parameters.ecs_alpha ) );
 
         auto H = make_SphericalHamiltonian(
             grid, []( auto r ) { return -1. / r; }, 0 );
         auto B = make_Basis( H, parameters.nmax );
         vector<BasisID> prototype;
 
-        for ( int l = 0; l <= parameters.lmax; ++l ) {
+        for ( auto l = 0u; l <= parameters.lmax; ++l ) {
             cout << "l: " << l;
             H.l( l );
             B.nstates = parameters.nmax - l;
@@ -55,7 +55,7 @@ int main( int argc, const char** argv )
         auto B = make_Basis( H, parameters.nmax );
         vector<BasisID> prototype;
 
-        for ( int l = 0; l <= parameters.lmax; ++l ) {
+        for ( auto l = 0u; l <= parameters.lmax; ++l ) {
             cout << "l: " << l;
             H.l( l );
             B.nstates = parameters.nmax - l;
