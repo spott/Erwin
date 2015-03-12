@@ -10,15 +10,13 @@ LDFLAGS= -L${PETSC_CPP_HOME}/lib/ -lpetsc_cpp -lgsl -lboost_program_options-mt -
 
 basis_src=src/test/basis_test.cpp
 hamiltonian_src=src/test/dipole_test.cpp
-propagate_src=src/test/propagate_test.cpp
-parameters_src=src/parameters/basis.cpp src/parameters/hamiltonian.cpp src/parameters/laser.cpp
+parameters_src=src/parameters/basis.cpp src/parameters/hamiltonian.cpp
 utilities_src=src/utilities/types.cpp src/utilities/math.cpp
 basis_objects=$(basis_src:.cpp=.o)
 hamiltonian_objects=$(hamiltonian_src:.cpp=.o)
-propagate_objects=$(propagate_src:.cpp=.o)
 parameters_objects=$(parameters_src:.cpp=.o)
 utilities_objects=$(utilities_src:.cpp=.o)
-SOURCES=${basis_src} ${hamiltonian_src} ${propagate_src} ${parameters_src} ${utilities_src}
+SOURCES=${basis_src} ${hamiltonian_src} ${parameters_src} ${utilities_src}
 HEADERS=include/time_independent/* include/utilities/* include/parameters/*
 OBJECTS=$(SOURCES:.cpp=.o)
 executables=testing/test_basis testing/test_hamiltonian testing/test_propagate
