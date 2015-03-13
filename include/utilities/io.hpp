@@ -8,6 +8,8 @@
 #include <fstream>
 #include <cstdarg>
 #include <vector>
+#include <type_traits>
+#include <ios>
 
 #include <petsc_cpp/Petsc.hpp>
 
@@ -90,8 +92,10 @@ namespace io
                                       const std::vector<T>& out,
                                       const std::vector<U>& prefix )
     {
+#ifdef DEBUG
         static_assert( std::is_trivially_copyable<T>(),
                        "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
+#endif
         std::ofstream file;
         file.open( filename.c_str(), std::ios::binary | std::ios::out );
         if ( file.is_open() ) {
@@ -113,8 +117,10 @@ namespace io
                                       const std::vector<T>& out,
                                       bool append = false )
     {
+#ifdef DEBUG
         static_assert( std::is_trivially_copyable<T>(),
                        "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
+#endif
         std::ofstream file;
         auto openmode = std::ios::binary | std::ios::out;
         if ( append ) openmode = openmode | std::ios::app;
@@ -145,8 +151,10 @@ namespace io
     template <typename T>
     std::vector<T> import_vector_binary( const std::string& filename )
     {
+#ifdef DEBUG
         static_assert( std::is_trivially_copyable<T>(),
                        "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
+#endif
         std::ifstream file;
         file.open( filename.c_str(), std::ios::binary | std::ios::ate );
         std::vector<T> vec;
@@ -170,7 +178,7 @@ namespace io
         }
 
         return vec;
-    };
+    }
 
     template <typename T>
     inline std::function<std::vector<T>()>
@@ -178,13 +186,15 @@ namespace io
                                const std::streamoff stride,
                                const std::streamoff start_ = 0 )
     {
+#ifdef DEBUG
         static_assert( std::is_trivially_copyable<T>(),
                        "NO NO NO - T MUST BE TRIVIALLY COPYABLE!" );
+#endif
         using namespace std;
         ifstream file( filename.c_str(), ios::binary | ios::in );
         std::streamoff start{start_ * stride};
         std::streamoff end = [&]() {
-            file.seekg( 0, ios_base::seekdir::end );
+            file.seekg( 0, std::ios_base::end );
             return file.tellg();
         }();
         return [
@@ -226,7 +236,7 @@ namespace io
         ifstream file( filename.c_str(), ios::binary | ios::in );
         std::streamoff start{start_ * stride};
         std::streamoff end = [&]() {
-            file.seekg( 0, ios_base::seekdir::end );
+            file.seekg( 0, ios_base::end );
             return file.tellg();
         }();
 
