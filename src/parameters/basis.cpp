@@ -64,7 +64,7 @@ const BasisParameters make_BasisParameters( int argc, const char** argv )
                       po::value<double>()->default_value( 0 ),
                       "absorber size as percent of rmax size" )(
         "basis_ecs_alpha",
-        po::value<double>()->default_value( math::PI<double> / 6. ),
+        po::value<double>()->default_value( math::PI / 6. ),
         "alpha for external complex scaling" );
 
 
