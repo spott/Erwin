@@ -6,38 +6,38 @@
 
 namespace Erwin
 {
-using namespace std;
 
 struct PropagationParameters {
-    enum class zeros : short { exact, approximate, none };
 
-    PropagationParameters( double ti, double tf, double dt, zeros z )
-        : ti( ti ), tf( tf ), dt( dt ), save_zeros( z )
+    PropagationParameters( double ti_,
+                           double tf_,
+                           double dt_,
+                           std::string folder_ )
+        : ti( ti_ ), tf( tf_ ), dt( dt_ ), folder( folder_ )
     {
     }
-    PropagationParameters(
-        double ti, double tf, double dt, string wf_filename, zeros z )
-        : ti( ti ), tf( tf ), dt( dt ),
-          initial_wavefunction_filename( wf_filename ), save_zeros( z )
+    PropagationParameters( double ti_,
+                           double tf_,
+                           double dt_,
+                           std::string folder_,
+                           std::string wf_filename_ )
+        : ti( ti_ ), tf( tf_ ), dt( dt_ ), folder( folder_ ),
+          initial_wavefunction_filename( wf_filename_ )
     {
     }
 
-    string print() const;
+    std::string print() const;
     void write() const;
     petsc::Vector read_initial_wavefunction() const;
-    petsc::TimeStepper::time time() const;
+    petsc::TimeStepper::times time() const;
 
 
     double ti;
     double tf;
     double dt;
-    experimental::optional<string> initial_wavefunction_filename;
-    zeros save_zeros{zeros::approximate};
+    std::string folder;
+    std::experimental::optional<std::string> initial_wavefunction_filename;
 };
-
-std::istream& operator>>( std::istream& in, PropagationParameters::zeros& z );
-std::ostream& operator<<( std::ostream& out,
-                          const PropagationParameters::zeros& z );
 
 const PropagationParameters make_PropagationParameters( int argc,
                                                         const char** argv );

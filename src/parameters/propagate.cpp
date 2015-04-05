@@ -8,13 +8,13 @@ std::string PropagationParameters::print() const
 {
     using namespace std;
     stringstream ss;
-    ss << "propagation_ti=" << ti << endl;
-    ss << "propagation_tf=" << tf << endl;
-    ss << "propagation_dt=" << dt << endl;
+    ss << "propagate_ti=" << ti << endl;
+    ss << "propagate_tf=" << tf << endl;
+    ss << "propagate_dt=" << dt << endl;
+    ss << "propagate_folder=" << dt << endl;
     if ( initial_wavefunction_filename )
-        ss << "propagation_wavefunction="
-           << initial_wavefunction_filename.value() << endl;
-    ss << "propagation_zeros=" << save_zeros << endl;
+        ss << "propagate_wavefunction=" << *initial_wavefunction_filename
+           << endl;
     return ss.str();
 }
 
@@ -25,30 +25,9 @@ void PropagationParameters::write() const
     configfile.close();
 }
 
-std::istream& operator>>( std::istream& in, PropagationParameters::zeros& z )
+petsc::TimeStepper::times PropagationParameters::time() const
 {
-    std::string token;
-    in >> token;
-    if ( token == "exact" )
-        z = PropagationParameters::zeros::exact;
-    else if ( token == "approximate" )
-        z = PropagationParameters::zeros::approximate;
-    else if ( token == "none" )
-        z = PropagationParameters::zeros::none;
-    else
-        throw boost::program_options::validation_error(
-            boost::program_options::validation_error::invalid_option_value );
-    return in;
-}
-std::ostream& operator<<( std::ostream& out, const PropagationParameters::zeros& z )
-{
-    if ( z == PropagationParameters::zeros::exact )
-        out << "exact";
-    else if ( z == PropagationParameters::zeros::approximate )
-        out << "approximate";
-    else if ( z == PropagationParameters::zeros::none )
-        out << "none";
-    return out;
+    return {ti, tf, dt};
 }
 
 const PropagationParameters make_PropagationParameters( int argc,
@@ -77,11 +56,9 @@ const PropagationParameters make_PropagationParameters( int argc,
                 ( "propagate_wavefunction", po::value<string>(),
                   "an initial wavefunction to propagate" )
 
-                    ( "propagate_zeros",
-                      po::value<PropagationParameters::zeros>()->default_value(
-                          PropagationParameters::zeros::approximate ),
-                      "When zeros are written out" );
-
+                    ( "propagate_folder",
+                      po::value<string>()->default_value( "./" ),
+                      "Folder for all propagation information" );
 
     po::variables_map vm;
 
@@ -96,25 +73,25 @@ const PropagationParameters make_PropagationParameters( int argc,
     ifstream fs( config_filename );
     vm.clear();
 
-    po::store( po::parse_config_file( fs, propagate, true ), vm );
     po::store( po::command_line_parser( argc, argv )
                    .options( propagate )
                    .allow_unregistered()
                    .run(),
                vm );
+    po::store( po::parse_config_file( fs, propagate, true ), vm );
 
     po::notify( vm );
 
     if ( !vm["propagate_wavefunction"].empty() )
-        return PropagationParameters(
-            vm["propagate_ti"].as<double>(), vm["propagate_tf"].as<double>(),
-            vm["propagate_dt"].as<double>(),
-            vm["propagate_wavefunction"].as<string>(),
-            vm["propagate_zeros"].as<PropagationParameters::zeros>() );
+        return PropagationParameters( vm["propagate_ti"].as<double>(),
+                                      vm["propagate_tf"].as<double>(),
+                                      vm["propagate_dt"].as<double>(),
+                                      vm["propagate_wavefunction"].as<string>(),
+                                      vm["propagate_folder"].as<string>() );
     else
-        return PropagationParameters(
-            vm["propagate_ti"].as<double>(), vm["propagate_tf"].as<double>(),
-            vm["propagate_dt"].as<double>(),
-            vm["propagate_zeros"].as<PropagationParameters::zeros>() );
+        return PropagationParameters( vm["propagate_ti"].as<double>(),
+                                      vm["propagate_tf"].as<double>(),
+                                      vm["propagate_dt"].as<double>(),
+                                      vm["propagate_folder"].as<string>() );
 }
 }
