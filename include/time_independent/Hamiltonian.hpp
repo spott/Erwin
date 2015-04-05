@@ -91,26 +91,7 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
           potential_( potential )
 
     {
-        // Make the matrix (for second order accurate):
-        auto nonzeros =
-            []( int i, int j ) { return i == j || i == j + 1 || i == j - 1; };
-
-        this->H.reserve( nonzeros );
-        populate_matrix( this->H, nonzeros, [this]( int i_, int j_ ) -> Scalar {
-            unsigned i = static_cast<unsigned>( i_ );
-            unsigned j = static_cast<unsigned>( j_ );
-            if ( i != j )
-                return this->second_derivative_2( i, j );
-            else if ( i == j )
-                return this->second_derivative_2( i, j ) +
-                       this->potential_( this->grid[i] ) +
-                       this->centrifugal_potential( this->grid[i] );
-            else
-                throw domain_error(
-                    "attempting to put a value where one doesn't belong" );
-        } );
-
-        this->assemble();
+        this->l( ll );
     }
 
     // 2nd order accurate 2nd derivative
@@ -122,20 +103,19 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
             auto b = grid[i];
             auto c = i > 0 ? grid[i - 1] : 0;
             auto dr2 = ( a - b ) * ( b - c );
-            return 1. / ( dr2 );
+            return -2. / ( dr2 );
         } else if ( i > j ) {
-            auto a = grid[i];
-
-            auto b = grid[i - 1];
-            auto c = i > 1 ? grid[i - 2] : 0;
+            auto a = grid[j + 1];
+            auto b = grid[j];
+            auto c = j > 0 ? grid[j - 1] : 0;
             auto dr2 = ( a - b ) * ( b - c );
-            return -1. / ( 2. * dr2 );
+            return 1. / ( dr2 );
         } else if ( i < j ) {
-            auto a = grid[i + 2];
-            auto b = grid[i + 1];
-            auto c = grid[i];
+            auto a = grid[i + 1];
+            auto b = grid[i];
+            auto c = i > 0 ? grid[i - 1] : 0;
             auto dr2 = ( a - b ) * ( b - c );
-            return -1. / ( 2. * dr2 );
+            return 1. / ( dr2 );
         } else
             throw domain_error( "derivative: attempting to put a "
                                 "value where one doesn't belong" );
@@ -143,26 +123,25 @@ struct SphericalHamiltonian final : Hamiltonian<SphericalHamiltonian<Scalar>> {
 
     Scalar centrifugal_potential( Scalar r )
     {
-        return ll * ( ll + 1. ) / ( 2. * r * r );
+        return static_cast<double>( ll * ( ll + 1. ) ) / ( 2. * r * r );
     }
 
     unsigned& l() { return ll; }
     // reminder: expensive
     unsigned& l( unsigned l )
     {
-        if ( l == ll ) return ll;
-
         ll = l;
         n = l + 1;
         auto nonzeros = []( unsigned i, unsigned j ) {
             return i == j || i == j + 1 || i == j - 1;
         };
+        this->H.reserve( nonzeros );
         populate_matrix( this->H, nonzeros,
                          [this]( unsigned i, unsigned j ) -> Scalar {
             if ( i != j )
-                return this->second_derivative_2( i, j );
+                return -this->second_derivative_2( i, j ) / 2.;
             else if ( i == j )
-                return this->second_derivative_2( i, j ) +
+                return -this->second_derivative_2( i, j ) / 2. +
                        this->potential_( this->grid[i] ) +
                        this->centrifugal_potential( this->grid[i] );
             else
