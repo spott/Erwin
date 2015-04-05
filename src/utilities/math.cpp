@@ -17,7 +17,7 @@ namespace math
         std::complex<double> out =
             gsl_sf_coupling_3j( l_init * 2, 2, l_fin * 2, 0, 0, 0 );
         out *= out;
-        out *= std::sqrt( ( 2 * l_fin + 1 ) * ( 2 * l_fin + 1 ) );
+        out *= std::sqrt( ( 2 * l_init + 1 ) * ( 2 * l_fin + 1 ) );
         return out;
     }
 
@@ -47,8 +47,8 @@ namespace math
         return grid;
     }
 
-    std::vector<double> make_equally_spaced_grid( size_t grid_size,
-                                                  double rmax )
+    std::vector<double>
+    make_equally_spaced_grid( size_t grid_size, double rmin, double rmax )
     {
         using std::vector;
         vector<double> grid;
@@ -57,7 +57,7 @@ namespace math
         auto dr = rmax / grid_size;
 
         while ( grid.size() <= grid_size ) {
-            auto r = dr * ( grid.size() + 1 );
+            auto r = dr * ( grid.size() ) + rmin;
             grid.emplace_back( r );
         }
         return grid;
