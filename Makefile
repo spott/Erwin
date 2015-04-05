@@ -1,62 +1,83 @@
-PETSC_CPP_HOME=${PWD}/../petsc-cpp/
+PETSC_CPP_HOME=../petsc-cpp/
 
-include ${SLEPC_DIR}/conf/slepc_common
+include ${SLEPC_DIR}/lib/slepc-conf/slepc_variables
 
-RELEASE_FLAGS=-Wall -Wpedantic -Wextra
-CLANG_ONLY_FLAGS=-fdiagnostics-show-template-tree -Wbind-to-temporary-copy -Weverything -D_DEBUG
-DEBUG_FLAGS=-Wall -Wpedantic -Wextra -Werror -Wno-c++98-compat-pedantic -Wno-old-style-cast -Wno-error=padded
-CPP_FLAGS_=-Iinclude/ -I${PETSC_CPP_HOME}/include/ -I. -std=c++1y
-LDFLAGS= -L${PETSC_CPP_HOME}/lib/ -lpetsc_cpp -lgsl -lboost_program_options-mt -lboost_iostreams-mt
+release_cpp_flags = -Wall -Wpedantic -Wextra
+clang_cpp_flags   = -fdiagnostics-show-template-tree -Wbind-to-temporary-copy -Weverything -DDEBUG
+debug_cpp_flags   = ${release_cpp_flags} -Werror -Wno-c++98-compat-pedantic \
+					          -Wno-old-style-cast -Wno-padded -Wno-deprecated-declarations \
+										-Wno-error=weak-vtables -Wno-error=exit-time-destructors
 
-basis_src=src/test/basis_test.cpp
-hamiltonian_src=src/test/dipole_test.cpp
-parameters_src=src/parameters/basis.cpp src/parameters/hamiltonian.cpp
-utilities_src=src/utilities/types.cpp src/utilities/math.cpp
-basis_objects=$(basis_src:.cpp=.o)
-hamiltonian_objects=$(hamiltonian_src:.cpp=.o)
-parameters_objects=$(parameters_src:.cpp=.o)
-utilities_objects=$(utilities_src:.cpp=.o)
-SOURCES=${basis_src} ${hamiltonian_src} ${parameters_src} ${utilities_src}
-HEADERS=include/time_independent/* include/utilities/* include/parameters/*
-OBJECTS=$(SOURCES:.cpp=.o)
-executables=testing/test_basis testing/test_hamiltonian testing/test_propagate
-ifeq ($(UNAME), Linux)
-	DEFAULT=release
-endif
-ifeq ($(UNAME), Darwin)
-	DEFAULT=debug
-endif
+CPP_FLAGS         = -I./include/ -I${PETSC_CPP_HOME}include -std=c++1y ${SLEPC_CC_INCLUDES} ${PETSC_CC_INCLUDES}
 
-.PHONEY: format cleanup library
+boost							= -lboost_program_options-mt -lboost_iostreams-mt
+gsl								= -lgsl
+LD_FLAGS          = -L${PETSC_CPP_HOME}lib/ -lpetsc_cpp ${boost} ${gsl} ${SLEPC_LIB} ${PETSC_LIB} 
 
-debug: format $(SOURCES) clang gpp
+#Directories
+source     = src
+includes   = include
+parameters = parameters
+utilities  = utilities
+build      = build
+testing    = testing
+test       = test
+
+basis_src          = basis_test.cpp
+hamiltonian_src    = dipole_test.cpp
+propagate_src      = propagate_test.cpp
+output_src         = check_prototype.cpp
+
+parameters_src     = basis.cpp hamiltonian.cpp laser.cpp propagate.cpp absorber.cpp dipole.cpp eigenstates.cpp
+parameters_objects = ${patsubst %.cpp, ${build}/${parameters}/%.o, ${parameters_src}}
+
+utilities_src      = types.cpp math.cpp
+utilities_objects  = ${patsubst %.cpp, ${build}/${utilities}/%.o, ${utilities_src}}
+
+executables        = ${patsubst %.cpp, ${testing}/%, ${basis_src} ${hamiltonian_src} ${propagate_src} ${output_src}}
 
 clang: CXX=clang++
-clang: CPP_FLAGS=${CPP_FLAGS_} ${CLANG_ONLY_FLAGS} ${DEBUG_FLAGS}
+clang: CPP_FLAGS += ${clang_cpp_flags} ${debug_cpp_flags}
 clang: $(executables)
 
 gpp: CXX=g++-4.9
-gpp: CPP_FLAGS=${CPP_FLAGS_} ${DEBUG_FLAGS}
+gpp: CPP_FLAGS += ${debug_cpp_flags}
 gpp: $(executables)
 
-release: CPP_FLAGS=${CPP_FLAGS_} ${RELEASE_FLAGS}
-release: $(SOURCES) $(executables)
+release: CPP_FLAGS +=${RELEASE_FLAGS}
+release: $(executables)
 
-testing/test_basis: ${basis_objects} ${parameters_objects} ${utilities_objects} chkopts
-	${CLINKER} -o $@ ${basis_objects} ${parameters_objects} ${utilities_objects} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+${testing}/%: ${build}/${test}/%.o ${parameters_objects} ${utilities_objects}
+	mpicxx -o $@ $^ ${LD_FLAGS}
 
-testing/test_hamiltonian: ${hamiltonian_objects} ${parameters_objects} ${utilities_objects} chkopts
-	${CLINKER} -o $@ ${hamiltonian_objects} ${parameters_objects} ${utilities_objects} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+${build}/${test}/%.o: ${source}/${test}/%.cpp
+	@mkdir -p ${dir $@}
+	mpicxx -o $@ -c $< ${CPP_FLAGS}
 
-testing/test_propagate: ${propagate_objects} ${parameters_objects} ${utilities_objects} chkopts
-	${CLINKER} -o $@ ${propagate_objects} ${parameters_objects} ${utilities_objects} ${LDFLAGS} ${PETSC_VEC_LIB} ${SLEPC_LIB}
+${build}/${utilities}/%.o: ${source}/${utilities}/%.cpp
+	@mkdir -p ${dir $@}
+	mpicxx -o $@ -c $< ${CPP_FLAGS}
+
+${build}/${parameters}/%.o: ${source}/${parameters}/%.cpp
+	@mkdir -p ${dir $@}
+	mpicxx -o $@ -c $< ${CPP_FLAGS}
+
+${source}/${test}/%.cpp: ${includes}/time_independent/*.hpp
+	-clang-format -style=file -i $@
+
+${source}/${utilities}/%.cpp: ${includes}/${utilities}/%.hpp
+	-clang-format -style=file -i $@
+
+${source}/${parameters}/%.cpp: ${includes}/${parameters}/%.hpp
+	-clang-format -style=file -i $@
+
+%.hpp:
+	-clang-format -style=file -i $@
 
 syntax_check: chkopts
 	clang++ -fsyntax-only ${SOURCES} ${CPP_FLAGS_} ${CLANG_ONLY_FLAGS} ${DEBUG_FLAGS} -I${SLEPC_DIR}/include/ -I${PETSC_DIR}/include/
 
-format:
-	clang-format -style=file -i ${SOURCES}
-	clang-format -style=file -i ${HEADERS}
-
 cleanup:
-	${RM} ${OBJECTS}
+	rm -rf ${build}
+
+.PHONEY: cleanup
