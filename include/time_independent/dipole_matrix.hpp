@@ -48,6 +48,7 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
     populate_vector( integrator, [&grid]( unsigned i ) {
         return grid[i] * ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
     } );
+
     Vector dr( grid.size() - 1, Vector::type::seq );
     populate_vector( dr, [&grid]( unsigned i ) {
         return ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
@@ -75,13 +76,16 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
 
                 if ( prototype[i].n == 2 && prototype[j].n == 2 ) {
                     Vector::draw( {{left, right}} );
-                    cout << "n = 2: " << rpart* angularpart << endl;
+                    cout << "n = 2: " << rpart << " * " << angularpart << " = "
+                         << rpart* angularpart << endl;
                     rpart =
                         inner_product( right, conjugate( integrator ), left );
-                    cout << "n = 2 * : " << rpart* angularpart << endl;
+                    cout << "n = 2 *: " << rpart << " * " << angularpart
+                         << " = " << rpart* angularpart << endl;
                     rpart =
                         inner_product( conjugate( left ), integrator, right );
-                    cout << "n = 2 ** : " << rpart* angularpart << endl;
+                    cout << "n = 2 **: " << rpart << " * " << angularpart
+                         << " = " << rpart* angularpart << endl;
                 }
                 m.set_value( i_, j_, rpart * angularpart );
             }

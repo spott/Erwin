@@ -175,6 +175,110 @@ struct Basis<HamiltonianType, false> {
         el.set_initial_vector( ep.evector );
         el.solve();
 
+        // orthogonalize:
+        for ( auto l = 0u; l < nstates; ++l ) {
+            auto v_l = el.get_eigenvector( l );
+            v_l.normalize_sign();
+            {
+                auto v_r = er.get_eigenvector( l );
+                v_r.normalize_sign();
+                auto norm =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                v_l /= std::conj( std::sqrt( norm ) );
+                v_r /= std::sqrt( norm );
+                auto norm2 =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                if ( !v_l.rank() )
+                    printf( "%d,%d: inner_product: (%e,%e), after: (%e, %e) \n",
+                            l, l, norm.real(), norm.imag(), norm2.real(),
+                            norm2.imag() );
+            }
+
+            for ( auto r = 0u; r < nstates; ++r ) {
+                auto v_r = er.get_eigenvector( r );
+                v_r.normalize_sign();
+                if ( r != l ) {
+                    auto v = conjugate( v_l );
+                    auto norm = inner_product(
+                        v_l, *( er.inner_product_space_diag ), v_r );
+                    v *= norm;
+                    v_r -= v;
+                    auto norm2 = inner_product(
+                        v_l, *( er.inner_product_space_diag ), v_r );
+                    if ( !v.rank() )
+                        printf(
+                            "%d,%d: inner_product: (%e,%e), after: (%e, %e) \n",
+                            l, r, norm.real(), norm.imag(), norm2.real(),
+                            norm2.imag() );
+                }
+            }
+            {
+                auto v_r = er.get_eigenvector( l );
+                v_r.normalize_sign();
+                auto norm =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                v_l /= std::conj( std::sqrt( norm ) );
+                v_r /= std::sqrt( norm );
+                auto norm2 =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                if ( !v_l.rank() )
+                    printf( "%d,%d: inner_product: (%e,%e), after: (%e, %e) \n",
+                            l, l, norm.real(), norm.imag(), norm2.real(),
+                            norm2.imag() );
+            }
+        }
+        // do it again, from the other side.
+        for ( auto r = 0u; r < nstates; ++r ) {
+            auto v_r = er.get_eigenvector( r );
+            v_r.normalize_sign();
+            {
+                auto v_l = el.get_eigenvector( r );
+                v_l.normalize_sign();
+                auto norm =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                v_l /= std::conj( std::sqrt( norm ) );
+                v_r /= std::sqrt( norm );
+                auto norm2 =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                if ( !v_l.rank() )
+                    printf( "%d,%d: inner_product: (%e,%e), after: (%e, %e) \n",
+                            r, r, norm.real(), norm.imag(), norm2.real(),
+                            norm2.imag() );
+            }
+
+            for ( auto l = 0u; l < nstates; ++l ) {
+                auto v_l = el.get_eigenvector( l );
+                v_l.normalize_sign();
+                if ( r != l ) {
+                    auto v = conjugate( v_r );
+                    auto norm = inner_product(
+                        v_l, *( er.inner_product_space_diag ), v_r );
+                    v *= std::conj(norm);
+                    v_l -= v;
+                    auto norm2 = inner_product(
+                        v_l, *( er.inner_product_space_diag ), v_r );
+                    if ( !v.rank() )
+                        printf(
+                            "%d,%d: inner_product: (%e,%e), after: (%e, %e) \n",
+                            l, r, norm.real(), norm.imag(), norm2.real(),
+                            norm2.imag() );
+                }
+            }
+            {
+                auto v_l = el.get_eigenvector( r );
+                v_l.normalize_sign();
+                auto norm =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                v_l /= std::conj( std::sqrt( norm ) );
+                v_r /= std::sqrt( norm );
+                auto norm2 =
+                    inner_product( v_l, *( er.inner_product_space_diag ), v_r );
+                if ( !v_l.rank() )
+                    printf( "%d,%d: inner_product: (%e,%e), after: (%e, %e) \n",
+                            r, r, norm.real(), norm.imag(), norm2.real(),
+                            norm2.imag() );
+            }
+        }
 
         return ep.evalue;
     }

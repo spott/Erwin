@@ -87,9 +87,11 @@ struct BasisLoader<double> {
         if ( ll == l && file.is_open() ) {
             const double* ptr = reinterpret_cast<const double*>( file.data() ) +
                                 basis.points * ( n - l - 1 );
-            auto a = make_unique<vector<complex<double>>>();
-            for ( auto i = 0u; i < basis.points; ++i ) a->push_back( ptr[i] );
-            return Vector( move( a ), Vector::type::seq );
+            auto a = Vector( basis.points, Vector::type::seq );
+            for ( auto i = 0u; i < basis.points; ++i )
+                a.set_value( static_cast<int>( i ), ptr[i] );
+            a.assemble();
+            return a;
         } else {
             ll = l;
             if ( file.is_open() ) file.close();
@@ -99,9 +101,11 @@ struct BasisLoader<double> {
                     ( basis.nmax - l - 1 ) );
             const double* ptr = reinterpret_cast<const double*>( file.data() ) +
                                 basis.points * ( n - l - 1 );
-            auto a = make_unique<vector<complex<double>>>();
-            for ( auto i = 0u; i < basis.points; ++i ) a->push_back( ptr[i] );
-            return Vector( move( a ), Vector::type::seq );
+            auto a = Vector( basis.points, Vector::type::seq );
+            for ( auto i = 0u; i < basis.points; ++i )
+                a.set_value( static_cast<int>( i ), ptr[i] );
+            a.assemble();
+            return a;
         }
     }
     Vector right( size_t n, size_t l )
@@ -111,9 +115,11 @@ struct BasisLoader<double> {
         if ( ll == l && file.is_open() ) {
             const double* ptr = reinterpret_cast<const double*>( file.data() ) +
                                 basis.points * ( n - l - 1 );
-            auto a = make_unique<vector<complex<double>>>();
-            for ( auto i = 0u; i < basis.points; ++i ) a->push_back( ptr[i] );
-            return Vector( move( a ), Vector::type::seq );
+            auto a = Vector( basis.points, Vector::type::seq );
+            for ( auto i = 0u; i < basis.points; ++i )
+                a.set_value( static_cast<int>( i ), ptr[i] );
+            a.assemble();
+            return a;
         } else {
             ll = l;
             if ( file.is_open() ) file.close();
@@ -123,9 +129,11 @@ struct BasisLoader<double> {
                     ( basis.nmax - l - 1 ) );
             const double* ptr = reinterpret_cast<const double*>( file.data() ) +
                                 basis.points * ( n - l - 1 );
-            auto a = make_unique<vector<complex<double>>>();
-            for ( auto i = 0u; i < basis.points; ++i ) a->push_back( ptr[i] );
-            return Vector( move( a ), Vector::type::seq );
+            auto a = Vector( basis.points, Vector::type::seq );
+            for ( auto i = 0u; i < basis.points; ++i )
+                a.set_value( static_cast<int>( i ), ptr[i] );
+            a.assemble();
+            return a;
         }
     }
 

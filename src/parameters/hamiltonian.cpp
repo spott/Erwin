@@ -90,12 +90,12 @@ const HamiltonianParameters make_HamiltonianParameters( int argc,
     ifstream fs( config_filename );
     vm.clear();
 
-    po::store( po::parse_config_file( fs, hamiltonian, true ), vm );
     po::store( po::command_line_parser( argc, argv )
                    .options( hamiltonian )
                    .allow_unregistered()
                    .run(),
                vm );
+    po::store( po::parse_config_file( fs, hamiltonian, true ), vm );
     po::notify( vm );
 
     // now get the BasisParameters structure:

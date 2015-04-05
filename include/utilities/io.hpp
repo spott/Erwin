@@ -225,48 +225,5 @@ namespace io
             }
         };
     }
-
-    template <typename T>
-    inline std::function<petsc::Vector()>
-    import_SeqVector_by_parts_fn( const std::string& filename,
-                                  const std::streamoff stride,
-                                  const std::streamoff start_ = 0 )
-    {
-        using namespace std;
-        ifstream file( filename.c_str(), ios::binary | ios::in );
-        std::streamoff start{start_ * stride};
-        std::streamoff end = [&]() {
-            file.seekg( 0, ios_base::end );
-            return file.tellg();
-        }();
-
-        return [
-            file( std::move( file ) ),
-            stride,
-            start,
-            end,
-            filename
-        ]() mutable->petsc::Vector
-        {
-            if ( file.is_open() ) {
-                if ( start >= end )
-                    throw std::out_of_range(
-                        "tried to read a stride out of range " + filename +
-                        " @ " + to_string( start ) );
-                auto v = make_unique<vector<complex<double>>>( stride );
-                file.seekg( start );
-                for ( auto i = 0; i < stride; ++i )
-                    file.read( reinterpret_cast<char*>( v->data() + i ),
-                               sizeof( T ) );
-
-                start += stride * sizeof( T );
-                return petsc::Vector( move( v ), petsc::Vector::type::seq );
-            } else {
-
-                throw std::runtime_error( "error opening file " + filename +
-                                          " does the folder exist?" );
-            }
-        };
-    }
 }
 }

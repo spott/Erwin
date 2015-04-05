@@ -63,8 +63,7 @@ const BasisParameters make_BasisParameters( int argc, const char** argv )
         "the atom" )( "basis_ecs_percent",
                       po::value<double>()->default_value( 0 ),
                       "absorber size as percent of rmax size" )(
-        "basis_ecs_alpha",
-        po::value<double>()->default_value( math::PI / 6. ),
+        "basis_ecs_alpha", po::value<double>()->default_value( math::PI / 6. ),
         "alpha for external complex scaling" );
 
 
@@ -81,25 +80,28 @@ const BasisParameters make_BasisParameters( int argc, const char** argv )
     ifstream fs( config_filename );
     vm.clear();
 
-    po::store( po::parse_config_file( fs, basis, true ), vm );
     po::store( po::command_line_parser( argc, argv )
                    .options( basis )
                    .allow_unregistered()
                    .run(),
                vm );
+    po::store( po::parse_config_file( fs, basis, true ), vm );
     po::notify( vm );
 
-    if ( vm["basis_ecs_percent"].empty() or vm["basis_ecs_alpha"].empty() )
+    experimental::optional<double> rmin;
+    if ( !vm["basis_rmin"].defaulted() ) rmin = vm["basis_rmin"].as<double>();
+
+    if ( vm["basis_ecs_percent"].defaulted() )
         return BasisParameters(
             io::absolute_path( vm["basis_folder"].as<string>() ),
-            vm["basis_rmax"].as<double>(), vm["basis_rmin"].as<double>(),
+            vm["basis_rmax"].as<double>(), rmin,
             vm["basis_points"].as<size_t>(), vm["basis_nmax"].as<unsigned>(),
             vm["basis_lmax"].as<unsigned>(), vm["basis_charge"].as<double>(),
             vm["basis_atom"].as<string>() );
     else
         return BasisParameters(
             io::absolute_path( vm["basis_folder"].as<string>() ),
-            vm["basis_rmax"].as<double>(), vm["basis_rmin"].as<double>(),
+            vm["basis_rmax"].as<double>(), rmin,
             vm["basis_points"].as<size_t>(), vm["basis_nmax"].as<unsigned>(),
             vm["basis_lmax"].as<unsigned>(), vm["basis_charge"].as<double>(),
             vm["basis_atom"].as<string>(), vm["basis_ecs_percent"].as<double>(),

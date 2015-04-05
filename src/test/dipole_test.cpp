@@ -32,7 +32,6 @@ int main( int argc, const char** argv )
 
     auto H = make_field_free( new_prototype );
     parameters.write_field_free( H );
-    H.print();
 
     if ( !parameters.basis->ecs_percent ) {
         auto D = make_dipole_matrix<BasisID, double>( *( parameters.basis ),
