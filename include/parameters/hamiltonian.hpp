@@ -46,11 +46,10 @@ struct HamiltonianParameters {
     {
         rhs.to_file( dipole_filename() );
     }
-    petsc::Matrix read_dipole() const
+    petsc::Matrix read_dipole( MPI_Comm comm = PETSC_COMM_WORLD ) const
     {
-        petsc::Matrix m( petsc::Matrix::type::block_aij );
-        petsc::binary_import( m, dipole_filename() );
-        return m;
+        return petsc::binary_import_matrix( comm, petsc::Matrix::type::aij,
+                                            dipole_filename() );
     }
 
     string field_free_filename() const
@@ -61,11 +60,9 @@ struct HamiltonianParameters {
     {
         rhs.to_file( field_free_filename() );
     }
-    petsc::Vector read_field_free() const
+    petsc::Vector read_field_free( MPI_Comm comm = PETSC_COMM_WORLD ) const
     {
-        petsc::Vector m;
-        petsc::binary_import( m, dipole_filename() );
-        return m;
+        return petsc::binary_import_vector( comm, field_free_filename() );
     }
 
     BasisID max_basis() const
