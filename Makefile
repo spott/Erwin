@@ -45,13 +45,12 @@ clang: $(executables)
 gpp: OMPI_CXX=g++-4.9
 gpp: CPP_FLAGS += ${debug_cpp_flags}
 gpp: $(executables)
-	@mpicxx -show
 
 release: CPP_FLAGS += ${release_cpp_flags}
 release: $(executables)
 
 ${testing}/%: ${build}/${test}/%.o ${parameters_objects} ${utilities_objects}
-	mpicxx -o $@ $^ ${LD_FLAGS} ${CPP_FLAGS}
+	mpicxx -o $@ $^ ${LD_FLAGS}
 
 ${build}/${test}/%.o: ${source}/${test}/%.cpp
 	@mkdir -p ${dir $@}
@@ -78,10 +77,12 @@ ${source}/${parameters}/%.cpp: ${includes}/${parameters}/%.hpp
 	-clang-format -style=file -i $@
 
 syntax_check: chkopts
-	clang++ -fsyntax-only ${SOURCES} ${CPP_FLAGS_} ${CLANG_ONLY_FLAGS} ${DEBUG_FLAGS} -I${SLEPC_DIR}/include/ -I${PETSC_DIR}/include/
+	mpicxx -fsyntax-only ${SOURCES} ${CPP_FLAGS_} ${CLANG_ONLY_FLAGS} ${DEBUG_FLAGS} -I${SLEPC_DIR}/include/ -I${PETSC_DIR}/include/
 
 clean:
 	rm -rf ${build}
 	rm -f ${executables}
 
-.PHONEY: clean
+print-%: ; @echo $*=$($*)
+
+.PHONEY: clean print-%

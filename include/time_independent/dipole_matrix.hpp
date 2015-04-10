@@ -27,7 +27,7 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
 {
     using namespace std;
     using namespace petsc;
-    Matrix m( prototype.size() );
+    Matrix m( static_cast<unsigned>(prototype.size() ));
     auto dipole_selection_rules = [&]( unsigned i, unsigned j ) {
         return ( abs( static_cast<int>( prototype[i].l - prototype[j].l ) ) ==
                      1 &&
@@ -45,12 +45,12 @@ Matrix make_dipole_matrix( BasisParameters bparams, std::vector<B> prototype )
     auto grid = io::import_vector_binary<Scalar>( bparams.grid_filename() );
     // integration is r^3 dr;
     Vector integrator( grid.size() - 1, Vector::type::seq );
-    populate_vector( integrator, [&grid]( unsigned i ) {
+    populate_vector( integrator, [&grid]( unsigned i ) -> PetscScalar {
         return grid[i] * ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
     } );
 
     Vector dr( grid.size() - 1, Vector::type::seq );
-    populate_vector( dr, [&grid]( unsigned i ) {
+    populate_vector( dr, [&grid]( unsigned i ) -> PetscScalar {
         return ( i == 0 ? grid[i] : grid[i] - grid[i - 1] );
     } );
 

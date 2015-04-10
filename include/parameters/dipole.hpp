@@ -21,12 +21,11 @@ struct DipoleObserver final : Observable {
         // create an ofstream for the combination of each function:
         for ( auto i = sections.cbegin(); i != sections.cend(); ++i ) {
             for ( auto j = i; j != sections.cend(); ++j ) {
-                ofstreams[i->first].emplace(
-                    j->first,
-                    std::ofstream( folder + "/dipole_" + i->first + j->first +
+                ofstreams[i->first][j->first].open(
+                     folder + "/dipole_" + i->first + j->first +
                                        ".dat",
                                    std::ios_base::binary | std::ios_base::app |
-                                       std::ios_base::out ) );
+                                       std::ios_base::out );
             }
         }
     }
