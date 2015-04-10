@@ -2,11 +2,12 @@ PETSC_CPP_HOME=../petsc-cpp/
 
 include ${SLEPC_DIR}/lib/slepc-conf/slepc_variables
 
-release_cpp_flags = -Wall -Wpedantic -Wextra
-clang_cpp_flags   = -fdiagnostics-show-template-tree -Wbind-to-temporary-copy -Weverything -DDEBUG
-debug_cpp_flags   = ${release_cpp_flags} -Werror -Wno-c++98-compat-pedantic \
-					          -Wno-old-style-cast -Wno-padded -Wno-deprecated-declarations \
-										-Wno-error=weak-vtables -Wno-error=exit-time-destructors
+release_cpp_flags = -Wall -Wpedantic -Wextra -fdiagnostics-color=auto
+clang_cpp_flags   = -fdiagnostics-show-template-tree -Wbind-to-temporary-copy       \
+										-Weverything -Wno-c++98-compat-pedantic -Wno-error=weak-vtables \
+										-Wno-error=exit-time-destructors -DDEBUG
+debug_cpp_flags   = ${release_cpp_flags} -Werror -Wno-old-style-cast -Wno-padded \
+									  -Wno-deprecated-declarations
 
 CPP_FLAGS         = -I./include/ -I${PETSC_CPP_HOME}include -std=c++1y ${SLEPC_CC_INCLUDES} ${PETSC_CC_INCLUDES}
 
@@ -27,6 +28,7 @@ basis_src          = basis_test.cpp
 hamiltonian_src    = dipole_test.cpp
 propagate_src      = propagate_test.cpp
 output_src         = check_prototype.cpp
+dipole_test_src    = check_dipole.cpp
 
 parameters_src     = basis.cpp hamiltonian.cpp laser.cpp propagate.cpp absorber.cpp dipole.cpp eigenstates.cpp
 parameters_objects = ${patsubst %.cpp, ${build}/${parameters}/%.o, ${parameters_src}}
@@ -34,21 +36,22 @@ parameters_objects = ${patsubst %.cpp, ${build}/${parameters}/%.o, ${parameters_
 utilities_src      = types.cpp math.cpp
 utilities_objects  = ${patsubst %.cpp, ${build}/${utilities}/%.o, ${utilities_src}}
 
-executables        = ${patsubst %.cpp, ${testing}/%, ${basis_src} ${hamiltonian_src} ${propagate_src} ${output_src}}
+executables        = ${patsubst %.cpp, ${testing}/%, ${basis_src} ${hamiltonian_src} ${propagate_src} ${output_src} ${dipole_test_src}}
 
 clang: CXX=clang++
 clang: CPP_FLAGS += ${clang_cpp_flags} ${debug_cpp_flags}
 clang: $(executables)
 
-gpp: CXX=g++-4.9
+gpp: OMPI_CXX=g++-4.9
 gpp: CPP_FLAGS += ${debug_cpp_flags}
 gpp: $(executables)
+	@mpicxx -show
 
-release: CPP_FLAGS +=${RELEASE_FLAGS}
+release: CPP_FLAGS += ${release_cpp_flags}
 release: $(executables)
 
 ${testing}/%: ${build}/${test}/%.o ${parameters_objects} ${utilities_objects}
-	mpicxx -o $@ $^ ${LD_FLAGS}
+	mpicxx -o $@ $^ ${LD_FLAGS} ${CPP_FLAGS}
 
 ${build}/${test}/%.o: ${source}/${test}/%.cpp
 	@mkdir -p ${dir $@}
@@ -77,7 +80,8 @@ ${source}/${parameters}/%.cpp: ${includes}/${parameters}/%.hpp
 syntax_check: chkopts
 	clang++ -fsyntax-only ${SOURCES} ${CPP_FLAGS_} ${CLANG_ONLY_FLAGS} ${DEBUG_FLAGS} -I${SLEPC_DIR}/include/ -I${PETSC_DIR}/include/
 
-cleanup:
+clean:
 	rm -rf ${build}
+	rm -f ${executables}
 
-.PHONEY: cleanup
+.PHONEY: clean

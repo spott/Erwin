@@ -10,9 +10,9 @@ void EigenstateObserver::operator()( const petsc::Matrix& A,
 {
     using namespace std;
     if ( ts.step() % steps == 0 && ts.step() != 0 ) {
-        // static auto AA = A;
-        // AA = A;
-        // AA *= std::complex<double>(0,-1);
+        // static auto A = AA;
+        // A = AA;
+        // A /= std::complex<double>(0,-1);
         auto uu = U;
         es.op( A );
         vector<petsc::Vector> deflation_space;
@@ -26,11 +26,13 @@ void EigenstateObserver::operator()( const petsc::Matrix& A,
             es.set_initial_vectors( space );
             if ( deflation_space.size() > 0 )
                 es.set_deflation_space( deflation_space );
-            if ( !A.rank() ) printf( "space size: %lu", space.size() );
-            es.shift_invert( state.e );
+            if ( !A.rank() ) printf( "space size: %lu\n", space.size() );
+            es.shift_invert( complex<double>(0,-1) * state.e );
+            es.print();
             es.solve();
 
             if ( es.num_converged() == 0 ) {
+                printf("none converged, resetting.... \n");
                 EPSReset( es.e_ );
                 auto a = es.dimensions();
                 es.dimensions( static_cast<int>( a[0]++ ),
@@ -80,6 +82,7 @@ void EigenstateObserver::operator()( const petsc::Matrix& A,
 
         draw_gs_pop.draw_point( t, y );
         draw_gs.draw_vector( abs_square( gs_vector ) );
+        gs_vector.to_file("gs_" + to_string(ts.step()) + "_" + to_string(ts.time()) + ".dat");
         if ( !A.rank() ) printf( "\n" );
     }
 }

@@ -30,7 +30,7 @@ struct Propagator {
                              },
                              H,
                              tt,
-                             TSTHETA )
+                             TSCN )
     {
         H.assemble();
         H = this->Dipole;
@@ -40,7 +40,7 @@ struct Propagator {
         ts.set_monitor( [ over = this, tt ]( petsc::TimeStepper & T, int step,
                                              double t,
                                              const petsc::Vector& U ) {
-            static petsc::Draw draw = [&]() {
+            static petsc::Draw draw1 = [&]() {
                 petsc::Draw dr( 0, U.size(), -100, 0, 1, U.comm() );
                 dr.set_function( []( PetscScalar d, unsigned ) {
                     auto x = std::pow( std::abs( d ), 2 );
@@ -49,17 +49,27 @@ struct Propagator {
                 dr.set_title( "wavefunction propability" );
                 return dr;
             }();
+            static petsc::Draw draw2 = [&]() {
+                petsc::Draw dr( 0, U.size(), -math::PI, math::PI, 1, U.comm() );
+                dr.set_function( []( PetscScalar d, unsigned ) {
+                        auto x = std::arg(d);
+                    return x;
+                } );
+                dr.set_title( "wavefunction propability" );
+                return dr;
+            }();
             auto norm = U.norm() - 1;
-            if ( !draw.rank() )
+            if ( !draw1.rank() )
                 std::printf( "t: %8.3f step: %8i norm-1: %8.3e ", t, step,
                              norm );
             for ( auto& o : over->observables ) ( *o )( over->H, U, T );
             for ( auto& o : over->observables )
-                if ( !draw.rank() )
+                if ( !draw1.rank() )
                     std::printf( "%s: %s ", o->name().c_str(),
                                  o->last().c_str() );
-            if ( !draw.rank() ) cout << endl;
-            draw.draw_vector( U );
+            if ( !draw1.rank() ) cout << endl;
+            draw1.draw_vector( U );
+            draw2.draw_vector( U );
         } );
     }
 
